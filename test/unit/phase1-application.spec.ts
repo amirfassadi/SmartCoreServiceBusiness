@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { AddBusinessLocationUseCase } from '../../src/application/business-location/add-business-location.use-case';
+import { GetBusinessUseCase } from '../../src/application/business/get-business.use-case';
 import { CreateBusinessPolicyUseCase } from '../../src/application/business-policy/create-business-policy.use-case';
 import { UpdateBusinessPolicyUseCase } from '../../src/application/business-policy/update-business-policy.use-case';
 import { CreateServiceCategoryUseCase } from '../../src/application/service-category/create-service-category.use-case';
@@ -12,6 +13,7 @@ import { ServiceCategoryRepositoryPort } from '../../src/domain/service-category
 import { ServiceRepositoryPort } from '../../src/domain/service/service.repository.port';
 import { BusinessContext } from '../../src/shared/context/request-context';
 import { DomainError } from '../../src/domain/shared/domain-error';
+import { BusinessPrismaRepository } from '../../src/infrastructure/persistence/prisma/repositories/business-prisma.repository';
 
 const context: BusinessContext = { organizationId: 'org-1', businessId: 'business-1', actorId: 'actor-1' };
 
@@ -29,6 +31,40 @@ function businessRepository(existing = true): BusinessRepositoryPort {
 }
 
 describe('Phase 1 application ownership and versioning', () => {
+  it('returns the complete business including its profile', async () => {
+    const business = Business.create({
+      slug: 'business', defaultLocale: 'en-US', supportedLocales: ['en-US'], timezone: 'UTC', currency: 'USD',
+      profile: { name: 'Business', description: 'Description', contactEmail: 'business@example.com' },
+    }, context.organizationId);
+    const repository = { getById: jest.fn(() => Promise.resolve(business)) } as unknown as BusinessRepositoryPort;
+
+    const result = await new GetBusinessUseCase(repository).execute(business.id, context);
+
+    expect(result).toBe(business);
+    expect(result).toMatchObject({
+      id: business.id,
+      organizationId: context.organizationId,
+      slug: 'business',
+      defaultLocale: 'en-US',
+      supportedLocales: ['en-US'],
+      timezone: 'UTC',
+      currency: 'USD',
+      profile: { name: 'Business', description: 'Description', contactEmail: 'business@example.com' },
+    });
+  });
+
+  it('rejects a business with a missing profile explicitly', async () => {
+    const prisma = {
+      business: { findFirst: jest.fn(() => Promise.resolve({
+        id: 'business-1', organizationId: context.organizationId, slug: 'business', defaultLocale: 'en-US',
+        supportedLocales: ['en-US'], timezone: 'UTC', currency: 'USD', createdAt: new Date(), updatedAt: new Date(), profile: null,
+      })) },
+    };
+    const repository = new BusinessPrismaRepository(prisma as never);
+
+    await expect(repository.getById('business-1', context)).rejects.toMatchObject({ code: 'PROFILE_NOT_FOUND' });
+  });
+
   it('rejects a location for a different business selector', async () => {
     const locations = { create: jest.fn(), getById: jest.fn(), listByBusiness: jest.fn(), update: jest.fn(), deactivate: jest.fn() } as unknown as BusinessLocationRepositoryPort;
     const useCase = new AddBusinessLocationUseCase(businessRepository(), locations);

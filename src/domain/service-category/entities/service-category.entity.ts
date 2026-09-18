@@ -1,5 +1,6 @@
 import { ValidationError } from '../../shared/domain-error';
 import { Slug } from '../../shared/slug.value-object';
+import { v4 as uuid } from 'uuid';
 
 export interface ServiceCategoryInput {
   businessId: string;
@@ -29,7 +30,7 @@ export class ServiceCategory {
     createdAt?: Date;
     updatedAt?: Date;
   }) {
-    this.id = input.id ?? `category-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.businessId = input.businessId;
     this.name = input.name.trim();
     if (!this.name) throw new ValidationError('Category name is required.');

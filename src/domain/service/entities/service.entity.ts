@@ -1,6 +1,7 @@
 import { ValidationError } from '../../shared/domain-error';
 import { Slug } from '../../shared/slug.value-object';
 import { ServiceDuration } from '../value-objects/service-duration.value-object';
+import { v4 as uuid } from 'uuid';
 
 export interface ServiceInput {
   businessId: string;
@@ -33,7 +34,7 @@ export class Service {
     createdAt?: Date;
     updatedAt?: Date;
   }) {
-    this.id = input.id ?? `service-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.businessId = input.businessId;
     this.categoryId = input.categoryId;
     this.name = input.name.trim();

@@ -4,6 +4,10 @@ import { ValidationError } from '../../src/domain/shared/domain-error';
 import { BusinessController } from '../../src/presentation/http/business/business.controller';
 import { ExternalRequestContextAdapter } from '../../src/presentation/http/context/external-request-context';
 import { LocalDevelopmentContextMiddleware } from '../../src/presentation/http/context/local-development-context.middleware';
+import { HttpErrorFilter } from '../../src/presentation/http/http-error.filter';
+import { phase1ValidationPipe } from '../../src/presentation/http/validation.pipe';
+import { IdentifierPipe } from '../../src/presentation/http/identifier.pipe';
+import { BadRequestException } from '@nestjs/common';
 import { CreateBusinessUseCase } from '../../src/application/business/create-business.use-case';
 import { GetBusinessUseCase } from '../../src/application/business/get-business.use-case';
 import { UpdateBusinessProfileUseCase } from '../../src/application/business/update-business-profile.use-case';
@@ -54,6 +58,27 @@ function controller(): BusinessController {
 }
 
 describe('Phase 1 HTTP boundary', () => {
+  it('preserves validation details in the stable error response', () => {
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const filter = new HttpErrorFilter();
+    const exception = phase1ValidationPipe['exceptionFactory']?.([{ property: 'name', constraints: { minLength: 'name must be longer than or equal to 1 characters' } }] as never) ?? new BadRequestException({ details: [{ property: 'name' }] });
+
+    filter.catch(exception, { switchToHttp: () => ({ getResponse: () => response }) } as never);
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR', details: expect.arrayContaining([expect.objectContaining({ property: 'name' })]) }));
+  });
+
+  it('applies the existing identifier semantics to entity and policy identifiers', () => {
+    const pipe = new IdentifierPipe();
+
+    expect(pipe.transform('business-1', { type: 'param', metatype: String, data: 'businessId' })).toBe('business-1');
+    expect(pipe.transform('location_1', { type: 'param', metatype: String, data: 'locationId' })).toBe('location_1');
+    expect(pipe.transform('service.confirmation', { type: 'param', metatype: String, data: 'policyKey' })).toBe('service.confirmation');
+    expect(() => pipe.transform('invalid/value', { type: 'param', metatype: String, data: 'businessId' })).toThrow('Invalid route identifier.');
+    expect(() => pipe.transform('Invalid.Policy', { type: 'param', metatype: String, data: 'policyKey' })).toThrow('Invalid route identifier.');
+  });
+
   it('maps the explicit local test headers into validated request context', () => {
     const middleware = new LocalDevelopmentContextMiddleware();
     const request = {

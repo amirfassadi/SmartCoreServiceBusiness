@@ -1,4 +1,5 @@
 import { ValidationError } from '../../shared/domain-error';
+import { v4 as uuid } from 'uuid';
 
 export interface BusinessPolicyInput {
   businessId: string;
@@ -25,7 +26,7 @@ export class BusinessPolicy {
     createdAt?: Date;
     updatedAt?: Date;
   }) {
-    this.id = input.id ?? `policy-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.businessId = input.businessId;
     this.policyKey = input.policyKey.trim();
     if (!this.policyKey || !/^[a-z0-9]+(?:\.[a-z0-9]+)*$/.test(this.policyKey)) {

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { Business, BusinessProfile } from '../../../../domain/business/entities/business.entity';
 import { BusinessRepositoryPort, CreateBusinessCommand } from '../../../../domain/business/business.repository.port';
 import { RepositoryScope } from '../../../../shared/context/request-context';
+import { DomainError } from '../../../../domain/shared/domain-error';
 
 export class BusinessPrismaRepository implements BusinessRepositoryPort {
   constructor(private readonly prisma: PrismaClient) {}
@@ -101,6 +102,10 @@ export class BusinessPrismaRepository implements BusinessRepositoryPort {
   }
 
   private mapBusiness(record: BusinessRecord): Business {
+    if (!record.profile) {
+      throw new DomainError('PROFILE_NOT_FOUND', 'Business profile was not found.');
+    }
+
     return new Business({
       id: record.id,
       organizationId: record.organizationId,
@@ -112,14 +117,14 @@ export class BusinessPrismaRepository implements BusinessRepositoryPort {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       profile: new BusinessProfile({
-        id: record.profile?.id,
+        id: record.profile.id,
         businessId: record.id,
-        name: record.profile?.name ?? '',
-        description: record.profile?.description ?? undefined,
-        logoUrl: record.profile?.logoUrl ?? undefined,
-        contactEmail: record.profile?.contactEmail ?? undefined,
-        createdAt: record.profile?.createdAt,
-        updatedAt: record.profile?.updatedAt,
+        name: record.profile.name,
+        description: record.profile.description ?? undefined,
+        logoUrl: record.profile.logoUrl ?? undefined,
+        contactEmail: record.profile.contactEmail ?? undefined,
+        createdAt: record.profile.createdAt,
+        updatedAt: record.profile.updatedAt,
       }),
     });
   }

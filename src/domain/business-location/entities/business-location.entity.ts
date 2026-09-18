@@ -1,5 +1,6 @@
 import { ValidationError } from '../../shared/domain-error';
 import { Timezone } from '../../shared/timezone.value-object';
+import { v4 as uuid } from 'uuid';
 
 export interface BusinessLocationInput {
   businessId: string;
@@ -29,7 +30,7 @@ export class BusinessLocation {
     createdAt?: Date;
     updatedAt?: Date;
   }) {
-    this.id = input.id ?? `location-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.businessId = input.businessId;
     this.name = input.name.trim();
     if (!this.name) throw new ValidationError('Location name is required.');

@@ -39,7 +39,11 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      response.status(status).json({ code: 'VALIDATION_ERROR', message: 'Request validation failed.', details: {} });
+      const exceptionResponse = exception.getResponse();
+      const details = typeof exceptionResponse === 'object' && exceptionResponse !== null && 'details' in exceptionResponse
+        ? exceptionResponse.details
+        : {};
+      response.status(status).json({ code: 'VALIDATION_ERROR', message: 'Request validation failed.', details });
       return;
     }
 

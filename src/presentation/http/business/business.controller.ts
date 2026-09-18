@@ -75,7 +75,7 @@ export class BusinessController {
 
   @Get(':businessId')
   get(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
-    return this.getBusinessUseCase.execute(businessId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId));
+    return this.getBusinessUseCase.execute(businessId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapBusiness);
   }
 
   @Patch(':businessId/profile')
@@ -84,60 +84,60 @@ export class BusinessController {
   }
 
   @Post(':businessId/locations')
-  addLocation(@Param('businessId') businessId: string, @Body() body: CreateLocationDto, @Req() request: RequestWithValidatedContext) {
+  addLocation(@Param('businessId', IdentifierPipe) businessId: string, @Body() body: CreateLocationDto, @Req() request: RequestWithValidatedContext) {
     const input: BusinessLocationInput = { ...body, businessId };
     return this.addBusinessLocationUseCase.execute(input, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapLocation);
   }
 
   @Get(':businessId/locations')
-  getLocations(@Param('businessId') businessId: string, @Req() request: RequestWithValidatedContext) {
+  getLocations(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
     return this.getBusinessLocationsUseCase.execute(businessId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapLocation));
   }
 
   @Patch(':businessId/locations/:locationId')
-  updateLocation(@Param('businessId') businessId: string, @Param('locationId') locationId: string, @Body() body: UpdateLocationDto, @Req() request: RequestWithValidatedContext) {
+  updateLocation(@Param('businessId', IdentifierPipe) businessId: string, @Param('locationId', IdentifierPipe) locationId: string, @Body() body: UpdateLocationDto, @Req() request: RequestWithValidatedContext) {
     return this.updateBusinessLocationUseCase.execute(locationId, { ...body, businessId }, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapLocation);
   }
 
   @Post(':businessId/locations/:locationId/deactivate')
-  deactivateLocation(@Param('businessId') businessId: string, @Param('locationId') locationId: string, @Req() request: RequestWithValidatedContext) {
+  deactivateLocation(@Param('businessId', IdentifierPipe) businessId: string, @Param('locationId', IdentifierPipe) locationId: string, @Req() request: RequestWithValidatedContext) {
     return this.deactivateBusinessLocationUseCase.execute(locationId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapLocation);
   }
 
   @Post(':businessId/service-categories')
-  createCategory(@Param('businessId') businessId: string, @Body() body: CreateServiceCategoryDto, @Req() request: RequestWithValidatedContext) {
+  createCategory(@Param('businessId', IdentifierPipe) businessId: string, @Body() body: CreateServiceCategoryDto, @Req() request: RequestWithValidatedContext) {
     const input: ServiceCategoryInput = { ...body, businessId };
     return this.createServiceCategoryUseCase.execute(input, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapCategory);
   }
 
   @Get(':businessId/service-categories')
-  getCategories(@Param('businessId') businessId: string, @Req() request: RequestWithValidatedContext) {
+  getCategories(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
     return this.getServiceCategoriesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapCategory));
   }
 
   @Post(':businessId/services')
-  createService(@Param('businessId') businessId: string, @Body() body: CreateServiceDto, @Req() request: RequestWithValidatedContext) {
+  createService(@Param('businessId', IdentifierPipe) businessId: string, @Body() body: CreateServiceDto, @Req() request: RequestWithValidatedContext) {
     const input: ServiceInput = { ...body, businessId };
     return this.createServiceUseCase.execute(input, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
   }
 
   @Get(':businessId/services')
-  getServices(@Param('businessId') businessId: string, @Req() request: RequestWithValidatedContext) {
+  getServices(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
     return this.getServicesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapService));
   }
 
   @Patch(':businessId/services/:serviceId')
-  updateService(@Param('businessId') businessId: string, @Param('serviceId') serviceId: string, @Body() body: UpdateServiceDto, @Req() request: RequestWithValidatedContext) {
+  updateService(@Param('businessId', IdentifierPipe) businessId: string, @Param('serviceId', IdentifierPipe) serviceId: string, @Body() body: UpdateServiceDto, @Req() request: RequestWithValidatedContext) {
     return this.updateServiceUseCase.execute(serviceId, body, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
   }
 
   @Post(':businessId/services/:serviceId/archive')
-  archiveService(@Param('businessId') businessId: string, @Param('serviceId') serviceId: string, @Req() request: RequestWithValidatedContext) {
+  archiveService(@Param('businessId', IdentifierPipe) businessId: string, @Param('serviceId', IdentifierPipe) serviceId: string, @Req() request: RequestWithValidatedContext) {
     return this.archiveServiceUseCase.execute(serviceId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
   }
 
   @Post(':businessId/policies')
-  createPolicy(@Param('businessId') businessId: string, @Body() body: CreatePolicyDto, @Req() request: RequestWithValidatedContext) {
+  createPolicy(@Param('businessId', IdentifierPipe) businessId: string, @Body() body: CreatePolicyDto, @Req() request: RequestWithValidatedContext) {
     const input: BusinessPolicyInput = { ...body, businessId };
     return this.createBusinessPolicyUseCase.execute(input, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapPolicy);
   }
@@ -148,12 +148,12 @@ export class BusinessController {
   }
 
   @Get(':businessId/policies/:policyKey/versions')
-  getPolicyVersions(@Param('businessId') businessId: string, @Param('policyKey') policyKey: string, @Req() request: RequestWithValidatedContext) {
+  getPolicyVersions(@Param('businessId', IdentifierPipe) businessId: string, @Param('policyKey', IdentifierPipe) policyKey: string, @Req() request: RequestWithValidatedContext) {
     return this.getBusinessPolicyVersionsUseCase.execute(policyKey, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapPolicy));
   }
 
   @Put(':businessId/policies/:policyKey')
-  updatePolicy(@Param('businessId') businessId: string, @Param('policyKey') policyKey: string, @Body() body: UpdatePolicyDto, @Req() request: RequestWithValidatedContext) {
+  updatePolicy(@Param('businessId', IdentifierPipe) businessId: string, @Param('policyKey', IdentifierPipe) policyKey: string, @Body() body: UpdatePolicyDto, @Req() request: RequestWithValidatedContext) {
     return this.updateBusinessPolicyUseCase.execute(policyKey, body.policyValueJson, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapPolicy);
   }
 }

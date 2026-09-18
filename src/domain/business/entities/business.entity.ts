@@ -5,6 +5,7 @@ import { Slug } from '../../shared/slug.value-object';
 import { Timezone } from '../../shared/timezone.value-object';
 import { ValidationError } from '../../shared/domain-error';
 import { BusinessCreated } from '../../shared/domain-events';
+import { v4 as uuid } from 'uuid';
 
 export interface BusinessProfileInput {
   name: string;
@@ -42,7 +43,7 @@ export class BusinessProfile {
     createdAt?: Date;
     updatedAt?: Date;
   }) {
-    this.id = input.id ?? `profile-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.businessId = input.businessId;
     this.name = input.name;
     this.description = input.description;
@@ -90,7 +91,7 @@ export class Business {
     deletedAt?: Date;
     profile: BusinessProfile;
   }) {
-    this.id = input.id ?? `business-${Math.random().toString(36).slice(2, 11)}`;
+    this.id = input.id ?? uuid();
     this.organizationId = input.organizationId;
     this.slug = Slug.create(input.slug).toString();
     this.defaultLocale = Locale.create(input.defaultLocale).toString();
@@ -109,7 +110,7 @@ export class Business {
   }
 
   static create(input: BusinessCreateInput, organizationId: string): Business {
-    const businessId = `business-${Math.random().toString(36).slice(2, 11)}`;
+    const businessId = uuid();
     const profile = new BusinessProfile({
       businessId,
       name: input.profile.name,

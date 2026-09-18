@@ -17,6 +17,6 @@ async function bootstrap(): Promise<void> {
   await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 }
 
-if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
   void bootstrap();
 }

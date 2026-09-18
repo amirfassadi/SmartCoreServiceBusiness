@@ -1,0 +1,224 @@
+import { INestApplication } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+import request from 'supertest';
+import { createIntegrationApp } from './helpers/app';
+import { cleanFixtures, createTestPrisma, fixturePrefix } from './helpers/database';
+import { BusinessPolicyPrismaRepository } from '../../src/infrastructure/persistence/prisma/repositories/business-policy-prisma.repository';
+
+type BusinessResponse = {
+  id: string;
+  organizationId: string;
+  slug: string;
+  defaultLocale: string;
+  supportedLocales: string[];
+  timezone: string;
+  currency: string;
+  status: string;
+  profile: { id: string; businessId: string; name: string };
+};
+
+type LocationResponse = { id: string; businessId: string; name: string; active: boolean };
+type CategoryResponse = { id: string; businessId: string; slug: string };
+type ServiceResponse = { id: string; businessId: string; slug: string; active: boolean };
+type PolicyResponse = { id: string; businessId: string; policyKey: string; version: number };
+
+const organizationA = 'integration-org-a';
+const organizationB = 'integration-org-b';
+
+function headers(organizationId: string) {
+  return {
+    'x-smartcore-test-organization-id': organizationId,
+    'x-smartcore-test-actor-id': 'integration-actor',
+  };
+}
+
+function businessBody(slug: string, profileName = 'Integration Business') {
+  return {
+    slug,
+    defaultLocale: 'en-US',
+    supportedLocales: ['en-US'],
+    timezone: 'UTC',
+    currency: 'USD',
+    profileName,
+  };
+}
+
+async function createBusiness(app: INestApplication, organizationId: string, suffix: string): Promise<BusinessResponse> {
+  const response = await request(app.getHttpServer())
+    .post('/api/v1/businesses')
+    .set(headers(organizationId))
+    .send(businessBody(`${fixturePrefix}${suffix}`))
+    .expect(201);
+  return response.body as BusinessResponse;
+}
+
+describe('Phase 1 HTTP and PostgreSQL integration', () => {
+  let app!: INestApplication;
+  let prisma!: PrismaClient;
+
+  beforeAll(async () => {
+    prisma = createTestPrisma();
+    await prisma.$connect();
+    await cleanFixtures(prisma);
+    app = await createIntegrationApp();
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+    if (prisma) {
+      await cleanFixtures(prisma);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('creates and gets a business with its persisted profile', async () => {
+    const created = await createBusiness(app, organizationA, 'business-a');
+    expect(created).toMatchObject({
+      organizationId: organizationA,
+      slug: `${fixturePrefix}business-a`,
+      defaultLocale: 'en-US',
+      supportedLocales: ['en-US'],
+      timezone: 'UTC',
+      currency: 'USD',
+      status: 'draft',
+      profile: { businessId: created.id, name: 'Integration Business' },
+    });
+
+    const stored = await prisma.business.findUnique({ where: { id: created.id }, include: { profile: true } });
+    expect(stored?.organizationId).toBe(organizationA);
+    expect(stored?.profile?.name).toBe('Integration Business');
+
+    const fetched = await request(app.getHttpServer()).get(`/api/v1/businesses/${created.id}`).set(headers(organizationA)).expect(200);
+    expect(fetched.body).toMatchObject({ id: created.id, profile: { id: stored?.profile?.id, name: 'Integration Business' } });
+  });
+
+  it('rejects missing context and preserves DTO validation details', async () => {
+    const missingContext = await request(app.getHttpServer()).post('/api/v1/businesses').send(businessBody(`${fixturePrefix}missing-context`)).expect(403);
+    expect(missingContext.body).toMatchObject({ code: 'BUSINESS_ACCESS_DENIED' });
+
+    const invalid = await request(app.getHttpServer()).post('/api/v1/businesses').set(headers(organizationA)).send({ ...businessBody(`${fixturePrefix}invalid`), profileName: '' }).expect(400);
+    expect(invalid.body).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(invalid.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ property: 'profileName' })]));
+  });
+
+  it('handles missing profiles explicitly and isolates businesses by organization', async () => {
+    const businessA = await createBusiness(app, organizationA, 'isolation-a');
+    const businessB = await createBusiness(app, organizationB, 'isolation-b');
+    await prisma.businessProfile.delete({ where: { businessId: businessA.id } });
+
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}`).set(headers(organizationA)).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'PROFILE_NOT_FOUND' });
+    });
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}`).set(headers(organizationA)).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    });
+  });
+
+  it('updates a profile and persists the change', async () => {
+    const business = await createBusiness(app, organizationA, 'profile-update');
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${business.id}/profile`).set(headers(organizationA)).send({ name: 'Updated Integration Business' }).expect(200);
+    const stored = await prisma.businessProfile.findUnique({ where: { businessId: business.id } });
+    expect(stored?.name).toBe('Updated Integration Business');
+  });
+
+  it('runs the complete location lifecycle and enforces cross-business access', async () => {
+    const businessA = await createBusiness(app, organizationA, 'location-a');
+    const businessB = await createBusiness(app, organizationA, 'location-b');
+    const created = await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/locations`).set(headers(organizationA)).send({ name: 'Main', timezone: 'UTC' }).expect(201);
+    const location = created.body as LocationResponse;
+    expect(location).toMatchObject({ businessId: businessA.id, name: 'Main', active: true });
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/locations`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: location.id })])));
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/locations/${location.id}`).set(headers(organizationA)).send({ name: 'Updated Main' }).expect(200);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/locations/${location.id}/deactivate`).set(headers(organizationA)).expect(404);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/locations/${location.id}/deactivate`).set(headers(organizationA)).expect(201);
+    const stored = await prisma.businessLocation.findUnique({ where: { id: location.id } });
+    expect(stored).toMatchObject({ businessId: businessA.id, name: 'Updated Main', active: false });
+  });
+
+  it('rejects duplicate business and location names with stable conflicts', async () => {
+    const business = await createBusiness(app, organizationA, 'unique-business');
+    await request(app.getHttpServer()).post('/api/v1/businesses').set(headers(organizationA)).send(businessBody(`${fixturePrefix}unique-business`)).expect(409).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_SLUG_ALREADY_EXISTS' });
+    });
+
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/locations`).set(headers(organizationA)).send({ name: 'Main', timezone: 'UTC' }).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/locations`).set(headers(organizationA)).send({ name: 'Main', timezone: 'UTC' }).expect(409).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'LOCATION_NAME_ALREADY_EXISTS' });
+    });
+  });
+
+  it('covers category and service lifecycle, constraints, and isolation', async () => {
+    const businessA = await createBusiness(app, organizationA, 'catalog-a');
+    const businessB = await createBusiness(app, organizationA, 'catalog-b');
+    const category = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Root', slug: 'root' }).expect(201)).body as CategoryResponse;
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Duplicate', slug: 'root' }).expect(409);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services`).set(headers(organizationA)).send({ categoryId: category.id, name: 'Wrong', slug: 'wrong', durationMinutes: 30 }).expect(422);
+
+    const service = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services`).set(headers(organizationA)).send({ categoryId: category.id, name: 'Service', slug: 'service', durationMinutes: 30 }).expect(201)).body as ServiceResponse;
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/services/${service.id}`).set(headers(organizationA)).send({ name: 'Updated Service' }).expect(200);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(404);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(201);
+    const stored = await prisma.service.findUnique({ where: { id: service.id } });
+    expect(stored).toMatchObject({ businessId: businessA.id, active: false });
+    expect(stored?.deletedAt).not.toBeNull();
+  });
+
+  it('enforces cross-organization isolation for locations, categories, services, and policies', async () => {
+    const businessA = await createBusiness(app, organizationA, 'cross-org-a');
+    const businessB = await createBusiness(app, organizationB, 'cross-org-b');
+    const location = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/locations`).set(headers(organizationB)).send({ name: 'Other Main', timezone: 'UTC' }).expect(201)).body as LocationResponse;
+    const category = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/service-categories`).set(headers(organizationB)).send({ name: 'Other Root', slug: 'other-root' }).expect(201)).body as CategoryResponse;
+    const service = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services`).set(headers(organizationB)).send({ categoryId: category.id, name: 'Other Service', slug: 'other-service', durationMinutes: 30 }).expect(201)).body as ServiceResponse;
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/policies`).set(headers(organizationB)).send({ policyKey: 'service.other', policyValueJson: { enabled: true } }).expect(201);
+
+    for (const path of [
+      `/api/v1/businesses/${businessB.id}/locations`,
+      `/api/v1/businesses/${businessB.id}/service-categories`,
+      `/api/v1/businesses/${businessB.id}/services`,
+      `/api/v1/businesses/${businessB.id}/policies/service.other`,
+    ]) {
+      await request(app.getHttpServer()).get(path).set(headers(organizationA)).expect(404).expect((response) => {
+        expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+      });
+    }
+
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/locations/${location.id}/deactivate`).set(headers(organizationA)).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'LOCATION_NOT_FOUND' }));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'SERVICE_NOT_FOUND' }));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Wrong Parent', slug: 'wrong-parent', parentCategoryId: category.id }).expect(422).expect((response) => expect(response.body).toMatchObject({ code: 'INVALID_PARENT_CATEGORY' }));
+    await request(app.getHttpServer()).put(`/api/v1/businesses/${businessA.id}/policies/service.other`).set(headers(organizationA)).send({ policyValueJson: { enabled: false } }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'POLICY_NOT_FOUND' }));
+  });
+
+  it('covers policy persistence concurrency and rejects stale versions', async () => {
+    const business = await createBusiness(app, organizationA, 'constraints');
+    const category = (await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/service-categories`).set(headers(organizationA)).send({ name: 'Root', slug: 'constraints-root' }).expect(201)).body as CategoryResponse;
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/services`).set(headers(organizationA)).send({ categoryId: category.id, name: 'Service', slug: 'constraints-service', durationMinutes: 30 }).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/services`).set(headers(organizationA)).send({ categoryId: category.id, name: 'Duplicate', slug: 'constraints-service', durationMinutes: 30 }).expect(409).expect((response) => expect(response.body).toMatchObject({ code: 'SERVICE_SLUG_ALREADY_EXISTS' }));
+
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/policies`).set(headers(organizationA)).send({ policyKey: 'service.versioned', policyValueJson: { value: 1 } }).expect(201);
+    await request(app.getHttpServer()).put(`/api/v1/businesses/${business.id}/policies/service.versioned`).set(headers(organizationA)).send({ policyValueJson: { value: 2 } }).expect(200);
+    const policyRepository = new BusinessPolicyPrismaRepository(prisma);
+    await expect(policyRepository.appendVersion({ businessId: business.id, policyKey: 'service.versioned', policyValueJson: { value: 3 } }, 1, { organizationId: organizationA, businessId: business.id })).rejects.toMatchObject({ code: 'POLICY_VERSION_CONFLICT' });
+  });
+
+  it('covers policy versions, semantic policy keys, and uniqueness', async () => {
+    const business = await createBusiness(app, organizationA, 'policy-a');
+    const policy = (await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/policies`).set(headers(organizationA)).send({ policyKey: 'service.confirmation', policyValueJson: { required: true } }).expect(201)).body as PolicyResponse;
+    expect(policy.version).toBe(1);
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${business.id}/policies/service.confirmation`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).put(`/api/v1/businesses/${business.id}/policies/service.confirmation`).set(headers(organizationA)).send({ policyValueJson: { required: false } }).expect(200);
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${business.id}/policies/service.confirmation/versions`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(2));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${business.id}/policies`).set(headers(organizationA)).send({ policyKey: 'service.confirmation', policyValueJson: { required: true } }).expect(409).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'POLICY_KEY_ALREADY_EXISTS' });
+    });
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${business.id}/policies/Invalid.Key`).set(headers(organizationA)).expect(400);
+    const stored = await prisma.businessPolicy.findMany({ where: { businessId: business.id }, orderBy: { version: 'asc' } });
+    expect(stored.map((value) => value.version)).toEqual([1, 2]);
+  });
+
+  it('rejects invalid identifiers at the real HTTP boundary', async () => {
+    await request(app.getHttpServer()).get('/api/v1/businesses/invalid%2Fid').set(headers(organizationA)).expect(400);
+    await request(app.getHttpServer()).get('/api/v1/businesses/business-1/policies/service.confirmation').set(headers(organizationA)).expect(404);
+  });
+});

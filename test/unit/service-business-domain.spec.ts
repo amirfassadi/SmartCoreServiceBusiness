@@ -5,6 +5,8 @@ import { Slug } from '../../src/domain/shared/slug.value-object';
 import { ServiceDuration } from '../../src/domain/service/value-objects/service-duration.value-object';
 import { ServiceCategory } from '../../src/domain/service-category/entities/service-category.entity';
 import { Service } from '../../src/domain/service/entities/service.entity';
+import { BusinessLocation } from '../../src/domain/business-location/entities/business-location.entity';
+import { BusinessPolicy } from '../../src/domain/business-policy/entities/business-policy.entity';
 
 describe('Phase 1 domain invariants', () => {
   it('accepts valid locale values and rejects invalid ones', () => {
@@ -38,6 +40,18 @@ describe('Phase 1 domain invariants', () => {
 
     expect(business.status.valueOf()).toBe(BusinessStatus.draft().valueOf());
     expect(business.profile.name).toBe('Demo Business');
+  });
+
+  it('generates UUID identifiers for domain entities', () => {
+    const business = Business.create({ slug: 'uuid-business', defaultLocale: 'en-US', supportedLocales: ['en-US'], timezone: 'UTC', currency: 'USD', profile: { name: 'Business' } }, 'org-123');
+    const location = BusinessLocation.create({ businessId: business.id, name: 'Main', timezone: 'UTC' });
+    const category = ServiceCategory.create({ businessId: business.id, name: 'Root', slug: 'root' });
+    const service = Service.create({ businessId: business.id, categoryId: category.id, name: 'Service', slug: 'service', durationMinutes: 30 });
+    const policy = BusinessPolicy.create({ businessId: business.id, policyKey: 'service.confirmation', policyValueJson: { required: true } });
+
+    for (const id of [business.id, business.profile.id, location.id, category.id, service.id, policy.id]) {
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    }
   });
 
   it('rejects self-parent categories', () => {
