@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { BusinessController } from './business.controller';
 import { CreateBusinessUseCase } from '../../../application/business/create-business.use-case';
 import { GetBusinessUseCase } from '../../../application/business/get-business.use-case';
@@ -22,7 +22,8 @@ import { CreateBusinessPolicyUseCase } from '../../../application/business-polic
 import { GetCurrentBusinessPolicyUseCase } from '../../../application/business-policy/get-current-business-policy.use-case';
 import { GetBusinessPolicyVersionsUseCase } from '../../../application/business-policy/get-business-policy-versions.use-case';
 import { UpdateBusinessPolicyUseCase } from '../../../application/business-policy/update-business-policy.use-case';
-import { HeaderExternalRequestContextAdapter } from '../context/external-request-context';
+import { ValidatedExternalRequestContextAdapter } from '../context/external-request-context';
+import { LocalDevelopmentContextMiddleware } from '../context/local-development-context.middleware';
 import { EXTERNAL_REQUEST_CONTEXT } from '../context/request-context.tokens';
 import { PrismaInfrastructureModule } from '../../../infrastructure/persistence/prisma/prisma.module';
 import {
@@ -37,7 +38,7 @@ import {
   imports: [PrismaInfrastructureModule],
   controllers: [BusinessController],
   providers: [
-    { provide: EXTERNAL_REQUEST_CONTEXT, useClass: HeaderExternalRequestContextAdapter },
+    { provide: EXTERNAL_REQUEST_CONTEXT, useClass: ValidatedExternalRequestContextAdapter },
     { provide: CreateBusinessUseCase, useFactory: (repository: BusinessRepositoryPort) => new CreateBusinessUseCase(repository), inject: [BUSINESS_REPOSITORY] },
     { provide: GetBusinessUseCase, useFactory: (repository: BusinessRepositoryPort) => new GetBusinessUseCase(repository), inject: [BUSINESS_REPOSITORY] },
     { provide: UpdateBusinessProfileUseCase, useFactory: (repository: BusinessRepositoryPort) => new UpdateBusinessProfileUseCase(repository), inject: [BUSINESS_REPOSITORY] },
@@ -57,4 +58,10 @@ import {
     { provide: UpdateBusinessPolicyUseCase, useFactory: (business: BusinessRepositoryPort, policy: BusinessPolicyRepositoryPort) => new UpdateBusinessPolicyUseCase(business, policy), inject: [BUSINESS_REPOSITORY, BUSINESS_POLICY_REPOSITORY] },
   ],
 })
-export class BusinessModule {}
+export class BusinessModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    if (process.env.NODE_ENV !== 'production') {
+      consumer.apply(LocalDevelopmentContextMiddleware).forRoutes(BusinessController);
+    }
+  }
+}

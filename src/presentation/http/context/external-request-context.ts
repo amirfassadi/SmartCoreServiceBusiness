@@ -10,7 +10,7 @@ export interface ExternalRequestContextAdapter {
   getValidatedContext(request: ValidatedExternalContext | undefined, businessId: string): BusinessContext;
 }
 
-export class HeaderExternalRequestContextAdapter implements ExternalRequestContextAdapter {
+export class ValidatedExternalRequestContextAdapter implements ExternalRequestContextAdapter {
   getValidatedContext(request: ValidatedExternalContext | undefined, businessId: string): BusinessContext {
     if (!request?.organizationId || !request.organizationId.trim()) {
       throw new ValidationError('Validated organization context is required.', 'BUSINESS_ACCESS_DENIED');

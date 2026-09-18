@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { ValidationError } from '../../src/domain/shared/domain-error';
 import { BusinessController } from '../../src/presentation/http/business/business.controller';
 import { ExternalRequestContextAdapter } from '../../src/presentation/http/context/external-request-context';
+import { LocalDevelopmentContextMiddleware } from '../../src/presentation/http/context/local-development-context.middleware';
 import { CreateBusinessUseCase } from '../../src/application/business/create-business.use-case';
 import { GetBusinessUseCase } from '../../src/application/business/get-business.use-case';
 import { UpdateBusinessProfileUseCase } from '../../src/application/business/update-business-profile.use-case';
@@ -53,6 +54,22 @@ function controller(): BusinessController {
 }
 
 describe('Phase 1 HTTP boundary', () => {
+  it('maps the explicit local test headers into validated request context', () => {
+    const middleware = new LocalDevelopmentContextMiddleware();
+    const request = {
+      header: (name: string) => ({
+        'x-smartcore-test-organization-id': ' org-test-001 ',
+        'x-smartcore-test-actor-id': 'actor-test-001',
+      }[name]),
+    } as never;
+    const next = jest.fn();
+
+    middleware.use(request, {} as never, next);
+
+    expect(request).toMatchObject({ validatedContext: { organizationId: 'org-test-001', actorId: 'actor-test-001' } });
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects missing external context without a production fallback', () => {
     const adapter: ExternalRequestContextAdapter = { getValidatedContext: () => { throw new ValidationError('Validated organization context is required.', 'BUSINESS_ACCESS_DENIED'); } };
     expect(() => adapter.getValidatedContext(undefined, 'business-1')).toThrow('Validated organization context is required.');
