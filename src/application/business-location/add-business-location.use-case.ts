@@ -19,6 +19,13 @@ export class AddBusinessLocationUseCase {
       throw new ValidationError('Business was not found.', 'BUSINESS_NOT_FOUND');
     }
 
-    return this.businessLocationRepository.create(input, context);
+    const location = BusinessLocation.create(input);
+    return this.businessLocationRepository.create({
+      businessId: location.businessId,
+      name: location.name,
+      address: location.address,
+      timezone: location.timezone,
+      active: location.active,
+    }, context);
   }
 }

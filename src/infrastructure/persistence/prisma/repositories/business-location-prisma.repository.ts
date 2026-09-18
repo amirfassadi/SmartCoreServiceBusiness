@@ -31,7 +31,8 @@ export class BusinessLocationPrismaRepository implements BusinessLocationReposit
 
   async update(id: string, input: Partial<CreateBusinessLocationInput>, scope: RepositoryScope & { businessId: string }): Promise<BusinessLocation> {
     try {
-      const record = await this.prisma.businessLocation.update({ where: { id, businessId: scope.businessId }, data: { name: input.name, address: input.address, timezone: input.timezone } });
+      await this.ensureScoped(id, scope);
+      const record = await this.prisma.businessLocation.update({ where: { id }, data: { name: input.name, address: input.address, timezone: input.timezone } });
       const scoped = await this.getById(record.id, scope);
       if (!scoped) throw new DomainError('LOCATION_NOT_FOUND', 'Location was not found in the organization scope.');
       return scoped;

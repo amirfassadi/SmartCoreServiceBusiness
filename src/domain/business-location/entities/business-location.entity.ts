@@ -45,7 +45,11 @@ export class BusinessLocation {
   }
 
   update(input: Partial<Pick<BusinessLocation, 'name' | 'address' | 'timezone'>>): void {
-    if (input.name !== undefined) this.name = input.name.trim();
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new ValidationError('Location name is required.');
+      this.name = name;
+    }
     if (input.address !== undefined) this.address = input.address;
     if (input.timezone !== undefined) this.timezone = Timezone.create(input.timezone).toString();
     this.updatedAt = new Date();

@@ -19,6 +19,15 @@ export class UpdateBusinessLocationUseCase {
     await requireBusinessScope(this.businessRepository, context);
     const location = await this.locationRepository.getById(locationId, context);
     if (!location) throw new ValidationError('Location was not found.', 'LOCATION_NOT_FOUND');
-    return this.locationRepository.update(locationId, input, context);
+    if (location.businessId !== context.businessId) {
+      throw new ValidationError('Business access denied.', 'BUSINESS_ACCESS_DENIED');
+    }
+    location.update(input);
+    return this.locationRepository.update(locationId, {
+      businessId: location.businessId,
+      name: location.name,
+      address: location.address,
+      timezone: location.timezone,
+    }, context);
   }
 }

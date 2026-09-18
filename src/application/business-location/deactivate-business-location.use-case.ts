@@ -15,6 +15,9 @@ export class DeactivateBusinessLocationUseCase {
     await requireBusinessScope(this.businessRepository, context);
     const location = await this.locationRepository.getById(locationId, context);
     if (!location) throw new ValidationError('Location was not found.', 'LOCATION_NOT_FOUND');
+    if (location.businessId !== context.businessId) {
+      throw new ValidationError('Business access denied.', 'BUSINESS_ACCESS_DENIED');
+    }
     return this.locationRepository.deactivate(locationId, context);
   }
 }
