@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id               String            @id @default(uuid())
+  organizationId   String
+  slug             String
+  defaultLocale    String
+  supportedLocales Json
+  timezone         String
+  currency         String
+  status           String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+
+  profile          BusinessProfile?
+  locations       BusinessLocation[]
+  categories      ServiceCategory[]
+  services        Service[]
+  policies        BusinessPolicy[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model BusinessProfile {
+  id           String   @id @default(uuid())
+  businessId   String   @unique
+  name         String
+  description  String?
+  logoUrl     String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+model BusinessLocation {
+  id        String   @id @default(uuid())
+  businessId String
+  name      String
+  address   String?
+  timezone  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, name])
+  @@index([businessId])
+  @@index([active])
+}
+
+model ServiceCategory {
+  id               String            @id @default(uuid())
+  businessId       String
+  name             String
+  slug             String
+  parentCategoryId String?
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  business        Business          @relation(fields: [businessId], references: [id])
+  parentCategory  ServiceCategory?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
+  childCategories ServiceCategory[] @relation("CategoryHierarchy")
+  services        Service[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([parentCategoryId])
+}
+
+model Service {
+  id              String          @id @default(uuid())
+  businessId      String
+  categoryId      String
+  name            String
+  slug            String
+  durationMinutes Int
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  business Business        @relation(fields: [businessId], references: [id])
+  category ServiceCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([categoryId])
+  @@index([active])
+}
+
+model BusinessPolicy {
+  id              String   @id @default(uuid())
+  businessId      String
+  policyKey       String
+  policyValueJson Json
+  version         Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, policyKey, version])
+  @@index([businessId])
+  @@index([policyKey])
+}
