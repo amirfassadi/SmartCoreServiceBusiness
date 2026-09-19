@@ -114,11 +114,54 @@ describe('Phase 1 HTTP and PostgreSQL integration', () => {
     });
   });
 
+  it('allows same-organization business selection but rejects cross-organization business and profile access', async () => {
+    const businessA = await createBusiness(app, organizationA, 'business-scope-a');
+    const businessB = await createBusiness(app, organizationA, 'business-scope-b');
+
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}`).set(headers(organizationB)).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    });
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessB.id}/profile`).set(headers(organizationB)).send({ name: 'Wrong Organization' }).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    });
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/profile`).set(headers(organizationB)).send({ name: 'Wrong Organization' }).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    });
+  });
+
   it('updates a profile and persists the change', async () => {
     const business = await createBusiness(app, organizationA, 'profile-update');
     await request(app.getHttpServer()).patch(`/api/v1/businesses/${business.id}/profile`).set(headers(organizationA)).send({ name: 'Updated Integration Business' }).expect(200);
     const stored = await prisma.businessProfile.findUnique({ where: { businessId: business.id } });
     expect(stored?.name).toBe('Updated Integration Business');
+  });
+
+  it('returns BUSINESS_NOT_FOUND when updating a nonexistent business profile', async () => {
+    await request(app.getHttpServer()).patch('/api/v1/businesses/00000000-0000-0000-0000-000000000000/profile').set(headers(organizationA)).send({ name: 'Updated' }).expect(404).expect((response) => {
+      expect(response.body).toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    });
+  });
+
+  it('rejects new active operations for an archived Business', async () => {
+    const business = await createBusiness(app, organizationA, 'archived-business');
+    await prisma.business.update({ where: { id: business.id }, data: { status: 'archived' } });
+
+    const expectArchived = async (path: string, body: Record<string, unknown>): Promise<void> => {
+      await request(app.getHttpServer()).post(path).set(headers(organizationA)).send(body).expect(409).expect((response) => {
+        expect(response.body).toMatchObject({ code: 'BUSINESS_ARCHIVED' });
+      });
+    };
+
+    await expectArchived(`/api/v1/businesses/${business.id}/locations`, { name: 'Archived Location', timezone: 'UTC' });
+    await expectArchived(`/api/v1/businesses/${business.id}/service-categories`, { name: 'Archived Category', slug: 'archived-category' });
+    await expectArchived(`/api/v1/businesses/${business.id}/services`, { categoryId: '00000000-0000-0000-0000-000000000000', name: 'Archived Service', slug: 'archived-service', durationMinutes: 30 });
+    await expectArchived(`/api/v1/businesses/${business.id}/policies`, { policyKey: 'service.archived', policyValueJson: { enabled: true } });
+
+    await expect(prisma.businessLocation.count({ where: { businessId: business.id } })).resolves.toBe(0);
+    await expect(prisma.serviceCategory.count({ where: { businessId: business.id } })).resolves.toBe(0);
+    await expect(prisma.service.count({ where: { businessId: business.id } })).resolves.toBe(0);
+    await expect(prisma.businessPolicy.count({ where: { businessId: business.id } })).resolves.toBe(0);
   });
 
   it('runs the complete location lifecycle and enforces cross-business access', async () => {
@@ -133,6 +176,19 @@ describe('Phase 1 HTTP and PostgreSQL integration', () => {
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/locations/${location.id}/deactivate`).set(headers(organizationA)).expect(201);
     const stored = await prisma.businessLocation.findUnique({ where: { id: location.id } });
     expect(stored).toMatchObject({ businessId: businessA.id, name: 'Updated Main', active: false });
+  });
+
+  it('rejects location update and list access across businesses and organizations', async () => {
+    const businessA = await createBusiness(app, organizationA, 'location-scope-a');
+    const businessB = await createBusiness(app, organizationA, 'location-scope-b');
+    const businessC = await createBusiness(app, organizationB, 'location-scope-c');
+    const location = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/locations`).set(headers(organizationA)).send({ name: 'Scoped Main', timezone: 'UTC' }).expect(201)).body as LocationResponse;
+
+    for (const organizationId of [organizationB, organizationA]) {
+      await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}/locations`).set(headers(organizationId)).expect(organizationId === organizationA ? 200 : 404);
+    }
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/locations/${location.id}`).set(headers(organizationA)).send({ name: 'Wrong Business' }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'LOCATION_NOT_FOUND' }));
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessC.id}/locations/${location.id}`).set(headers(organizationB)).send({ name: 'Wrong Organization' }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'LOCATION_NOT_FOUND' }));
   });
 
   it('rejects duplicate business and location names with stable conflicts', async () => {
@@ -188,6 +244,21 @@ describe('Phase 1 HTTP and PostgreSQL integration', () => {
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'SERVICE_NOT_FOUND' }));
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Wrong Parent', slug: 'wrong-parent', parentCategoryId: category.id }).expect(422).expect((response) => expect(response.body).toMatchObject({ code: 'INVALID_PARENT_CATEGORY' }));
     await request(app.getHttpServer()).put(`/api/v1/businesses/${businessA.id}/policies/service.other`).set(headers(organizationA)).send({ policyValueJson: { enabled: false } }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'POLICY_NOT_FOUND' }));
+  });
+
+  it('rejects category, service, and policy operations under a different business context', async () => {
+    const businessA = await createBusiness(app, organizationA, 'mutation-scope-a');
+    const businessB = await createBusiness(app, organizationA, 'mutation-scope-b');
+    const category = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/service-categories`).set(headers(organizationA)).send({ name: 'Scoped Category', slug: 'scoped-category' }).expect(201)).body as CategoryResponse;
+    const service = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services`).set(headers(organizationA)).send({ categoryId: category.id, name: 'Scoped Service', slug: 'scoped-service', durationMinutes: 30 }).expect(201)).body as ServiceResponse;
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/policies`).set(headers(organizationA)).send({ policyKey: 'service.scoped', policyValueJson: { enabled: true } }).expect(201);
+
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}/service-categories`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Wrong Parent', slug: 'wrong-parent', parentCategoryId: category.id }).expect(422).expect((response) => expect(response.body).toMatchObject({ code: 'INVALID_PARENT_CATEGORY' }));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}/services`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/services/${service.id}`).set(headers(organizationA)).send({ name: 'Wrong Service' }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'SERVICE_NOT_FOUND' }));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessB.id}/policies/service.scoped`).set(headers(organizationA)).expect(200);
+    await request(app.getHttpServer()).put(`/api/v1/businesses/${businessA.id}/policies/service.scoped`).set(headers(organizationA)).send({ policyValueJson: { enabled: false } }).expect(404).expect((response) => expect(response.body).toMatchObject({ code: 'POLICY_NOT_FOUND' }));
   });
 
   it('covers policy persistence concurrency and rejects stale versions', async () => {

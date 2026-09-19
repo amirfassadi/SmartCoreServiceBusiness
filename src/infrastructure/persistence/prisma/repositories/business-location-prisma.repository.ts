@@ -8,6 +8,9 @@ export class BusinessLocationPrismaRepository implements BusinessLocationReposit
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(input: CreateBusinessLocationInput, scope: RepositoryScope): Promise<BusinessLocation> {
+    if (scope.businessId !== input.businessId) {
+      throw new DomainError('BUSINESS_ACCESS_DENIED', 'Business is outside the request scope.');
+    }
     const business = await this.prisma.business.findFirst({ where: { id: input.businessId, organizationId: scope.organizationId }, select: { id: true } });
     if (!business) throw new DomainError('BUSINESS_NOT_FOUND', 'Business was not found in the organization scope.');
     try {

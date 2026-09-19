@@ -8,6 +8,9 @@ export class ServicePrismaRepository implements ServiceRepositoryPort {
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(input: CreateServiceInput, scope: RepositoryScope & { businessId: string }): Promise<Service> {
+    if (input.businessId !== scope.businessId) {
+      throw new DomainError('BUSINESS_ACCESS_DENIED', 'Business is outside the request scope.');
+    }
     if (!(await this.validateCategoryOwnership(input.categoryId, scope))) throw new DomainError('INVALID_SERVICE_CATEGORY', 'Service category is outside the business scope.');
     try {
       const record = await this.prisma.service.create({ data: { businessId: input.businessId, categoryId: input.categoryId, name: input.name, slug: input.slug, durationMinutes: input.durationMinutes, active: input.active ?? true } });
@@ -31,7 +34,11 @@ export class ServicePrismaRepository implements ServiceRepositoryPort {
   async update(id: string, input: Partial<CreateServiceInput>, scope: RepositoryScope & { businessId: string }): Promise<Service> {
     if (input.categoryId && !(await this.validateCategoryOwnership(input.categoryId, scope))) throw new DomainError('INVALID_SERVICE_CATEGORY', 'Service category is outside the business scope.');
     try {
-      const record = await this.prisma.service.update({ where: { id, businessId: scope.businessId }, data: { categoryId: input.categoryId, name: input.name, slug: input.slug, durationMinutes: input.durationMinutes, active: input.active } });
+      await this.ensureScoped(id, scope);
+      if (input.businessId !== undefined && input.businessId !== scope.businessId) {
+        throw new DomainError('BUSINESS_ACCESS_DENIED', 'Business is outside the request scope.');
+      }
+      const record = await this.prisma.service.update({ where: { id }, data: { categoryId: input.categoryId, name: input.name, slug: input.slug, durationMinutes: input.durationMinutes, active: input.active } });
       const scoped = await this.getById(record.id, scope);
       if (!scoped) throw new DomainError('SERVICE_NOT_FOUND', 'Service was not found in the organization scope.');
       return scoped;

@@ -3,6 +3,7 @@ import { ServiceRepositoryPort } from '../../domain/service/service.repository.p
 import { BusinessRepositoryPort } from '../../domain/business/business.repository.port';
 import { BusinessContext } from '../../shared/context/request-context';
 import { ValidationError } from '../../domain/shared/domain-error';
+import { requireBusinessScope } from '../shared/require-business-scope';
 
 export class CreateServiceUseCase {
   constructor(
@@ -15,9 +16,7 @@ export class CreateServiceUseCase {
       throw new ValidationError('Business access denied.', 'BUSINESS_ACCESS_DENIED');
     }
 
-    if (!(await this.businessRepository.getById(context.businessId, context))) {
-      throw new ValidationError('Business was not found.', 'BUSINESS_NOT_FOUND');
-    }
+    await requireBusinessScope(this.businessRepository, context);
 
     if (!(await this.serviceRepository.validateCategoryOwnership(input.categoryId, context))) {
       throw new ValidationError('Invalid service category.', 'INVALID_SERVICE_CATEGORY');

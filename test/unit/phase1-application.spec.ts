@@ -65,6 +65,44 @@ describe('Phase 1 application ownership and versioning', () => {
     await expect(repository.getById('business-1', context)).rejects.toMatchObject({ code: 'PROFILE_NOT_FOUND' });
   });
 
+  it('preserves a persisted non-draft business status', async () => {
+    const prisma = {
+      business: { findFirst: jest.fn(() => Promise.resolve({
+        id: 'business-1', organizationId: context.organizationId, slug: 'business', defaultLocale: 'en-US',
+        supportedLocales: ['en-US'], timezone: 'UTC', currency: 'USD', status: 'active', createdAt: new Date(), updatedAt: new Date(),
+        profile: { id: 'profile-1', businessId: 'business-1', name: 'Business', description: null, logoUrl: null, contactEmail: null, createdAt: new Date(), updatedAt: new Date() },
+      })) },
+    };
+    const repository = new BusinessPrismaRepository(prisma as never);
+
+    const business = await repository.getById('business-1', context);
+    expect(business?.status.toString()).toBe('active');
+  });
+
+  it('maps profile update errors using stable domain codes', async () => {
+    const prisma = {
+      business: { findFirst: jest.fn<() => Promise<unknown>>()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'business-1' })
+        .mockResolvedValueOnce({
+          id: 'business-1', organizationId: context.organizationId, slug: 'business', defaultLocale: 'en-US', supportedLocales: ['en-US'],
+          timezone: 'UTC', currency: 'USD', status: 'draft', createdAt: new Date(), updatedAt: new Date(),
+          profile: { id: 'profile-1', businessId: 'business-1', name: 'Updated', description: null, logoUrl: null, contactEmail: null, createdAt: new Date(), updatedAt: new Date() },
+        })
+        .mockResolvedValueOnce({ id: 'business-1' }),
+    },
+      businessProfile: { updateMany: jest.fn<() => Promise<{ count: number }>>()
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 }),
+      },
+    };
+    const repository = new BusinessPrismaRepository(prisma as never);
+
+    await expect(repository.updateProfile('missing', { name: 'Updated' }, context)).rejects.toMatchObject({ code: 'BUSINESS_NOT_FOUND' });
+    await expect(repository.updateProfile('business-1', { name: 'Updated' }, context)).resolves.toMatchObject({ profile: { name: 'Updated' } });
+    await expect(repository.updateProfile('business-1', { name: 'Updated' }, context)).rejects.toMatchObject({ code: 'PROFILE_NOT_FOUND' });
+  });
+
   it('rejects a location for a different business selector', async () => {
     const locations = { create: jest.fn(), getById: jest.fn(), listByBusiness: jest.fn(), update: jest.fn(), deactivate: jest.fn() } as unknown as BusinessLocationRepositoryPort;
     const useCase = new AddBusinessLocationUseCase(businessRepository(), locations);

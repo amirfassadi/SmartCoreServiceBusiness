@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Business, BusinessProfile } from '../../../../domain/business/entities/business.entity';
+import { BusinessStatus } from '../../../../domain/shared/business-status.value-object';
 import { BusinessRepositoryPort, CreateBusinessCommand } from '../../../../domain/business/business.repository.port';
 import { RepositoryScope } from '../../../../shared/context/request-context';
 import { DomainError } from '../../../../domain/shared/domain-error';
@@ -87,18 +88,25 @@ export class BusinessPrismaRepository implements BusinessRepositoryPort {
   }
 
   async updateProfile(id: string, profile: Partial<{ name: string; description?: string; logoUrl?: string; contactEmail?: string }>, scope: RepositoryScope): Promise<Business> {
-    await this.prisma.businessProfile.updateMany({
+    const business = await this.prisma.business.findFirst({
+      where: { id, organizationId: scope.organizationId },
+      select: { id: true },
+    });
+    if (!business) throw new DomainError('BUSINESS_NOT_FOUND', 'Business was not found in the organization scope.');
+
+    const updateResult = await this.prisma.businessProfile.updateMany({
       where: { businessId: id, business: { organizationId: scope.organizationId } },
       data: { ...profile },
     });
+    if (updateResult.count === 0) throw new DomainError('PROFILE_NOT_FOUND', 'Business profile was not found.');
 
-    const business = await this.prisma.business.findUnique({
+    const updatedBusiness = await this.prisma.business.findFirst({
       where: { id, organizationId: scope.organizationId },
       include: { profile: true },
     });
 
-    if (!business) throw new Error('BUSINESS_NOT_FOUND');
-    return this.mapBusiness(business);
+    if (!updatedBusiness) throw new DomainError('BUSINESS_NOT_FOUND', 'Business was not found in the organization scope.');
+    return this.mapBusiness(updatedBusiness);
   }
 
   private mapBusiness(record: BusinessRecord): Business {
@@ -114,6 +122,7 @@ export class BusinessPrismaRepository implements BusinessRepositoryPort {
       supportedLocales: Array.isArray(record.supportedLocales) ? record.supportedLocales : [],
       timezone: record.timezone,
       currency: record.currency,
+      status: BusinessStatus.create(record.status),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       profile: new BusinessProfile({
@@ -138,6 +147,7 @@ type BusinessRecord = {
   supportedLocales: unknown;
   timezone: string;
   currency: string;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
   profile: {

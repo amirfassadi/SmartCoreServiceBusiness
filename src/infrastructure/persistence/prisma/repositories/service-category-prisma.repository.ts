@@ -8,6 +8,9 @@ export class ServiceCategoryPrismaRepository implements ServiceCategoryRepositor
   constructor(private readonly prisma: PrismaClient) {}
 
   async create(input: CreateServiceCategoryInput, scope: RepositoryScope & { businessId: string }): Promise<ServiceCategory> {
+    if (input.businessId !== scope.businessId) {
+      throw new DomainError('BUSINESS_ACCESS_DENIED', 'Business is outside the request scope.');
+    }
     const business = await this.prisma.business.findFirst({ where: { id: input.businessId, organizationId: scope.organizationId }, select: { id: true } });
     if (!business) throw new DomainError('BUSINESS_NOT_FOUND', 'Business was not found in the organization scope.');
     if (input.parentCategoryId && !(await this.validateParentOwnership(input.parentCategoryId, scope))) {
