@@ -7,7 +7,6 @@ export interface ServiceCategoryInput {
   name: string;
   slug: string;
   parentCategoryId?: string;
-  active?: boolean;
 }
 
 export class ServiceCategory {
@@ -16,7 +15,7 @@ export class ServiceCategory {
   name: string;
   slug: string;
   parentCategoryId?: string;
-  active: boolean;
+  archivedAt: Date | null;
   readonly createdAt: Date;
   updatedAt: Date;
 
@@ -26,7 +25,7 @@ export class ServiceCategory {
     name: string;
     slug: string;
     parentCategoryId?: string;
-    active?: boolean;
+    archivedAt?: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
   }) {
@@ -39,7 +38,7 @@ export class ServiceCategory {
     if (this.parentCategoryId && this.parentCategoryId === this.id) {
       throw new ValidationError('Category cannot be its own parent.');
     }
-    this.active = input.active ?? true;
+    this.archivedAt = input.archivedAt ?? null;
     this.createdAt = input.createdAt ?? new Date();
     this.updatedAt = input.updatedAt ?? this.createdAt;
   }
@@ -55,4 +54,5 @@ export class ServiceCategory {
     this.parentCategoryId = parentCategoryId;
     this.updatedAt = new Date();
   }
+
 }

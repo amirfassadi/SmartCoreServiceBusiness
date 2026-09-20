@@ -45,6 +45,28 @@ Idempotency-Key: <unique-key>
 
 The actual platform standard may replace these headers with a context/token mechanism.
 
+## 4.1 Service and Category Lifecycle
+
+Service and ServiceCategory use `archivedAt` as their lifecycle marker:
+
+- `archivedAt: null` means `ACTIVE`.
+- `archivedAt` with a timestamp means `ARCHIVED`.
+
+Archived Services and Categories remain retrievable by ID, but cannot be updated. Archive and restore operations are idempotent. A category cannot be archived while it contains an active Service.
+
+Service and category list endpoints support an optional `status` query parameter:
+
+```http
+GET /api/v1/businesses/{businessId}/services?status=active
+GET /api/v1/businesses/{businessId}/services?status=archived
+GET /api/v1/businesses/{businessId}/services?status=all
+GET /api/v1/businesses/{businessId}/service-categories?status=active
+GET /api/v1/businesses/{businessId}/service-categories?status=archived
+GET /api/v1/businesses/{businessId}/service-categories?status=all
+```
+
+The default is `status=active`. Invalid status values are rejected as validation errors.
+
 ## 5. Availability Request
 
 Conceptual input:

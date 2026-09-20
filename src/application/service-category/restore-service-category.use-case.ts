@@ -3,16 +3,12 @@ import { ServiceCategoryRepositoryPort } from '../../domain/service-category/ser
 import { BusinessRepositoryPort } from '../../domain/business/business.repository.port';
 import { BusinessContext } from '../../shared/context/request-context';
 import { requireBusinessScope } from '../shared/require-business-scope';
-import { CategoryLifecycleStatus } from '../../domain/service-category/service-category.repository.port';
 
-export class GetServiceCategoriesUseCase {
-  constructor(
-    private readonly businessRepository: BusinessRepositoryPort,
-    private readonly categoryRepository: ServiceCategoryRepositoryPort,
-  ) {}
+export class RestoreServiceCategoryUseCase {
+  constructor(private readonly businessRepository: BusinessRepositoryPort, private readonly categoryRepository: ServiceCategoryRepositoryPort) {}
 
-  async execute(context: BusinessContext, status: CategoryLifecycleStatus = 'active'): Promise<ServiceCategory[]> {
+  async execute(id: string, context: BusinessContext): Promise<ServiceCategory> {
     await requireBusinessScope(this.businessRepository, context);
-    return this.categoryRepository.listByBusiness(status, context);
+    return this.categoryRepository.restore(id, context);
   }
 }

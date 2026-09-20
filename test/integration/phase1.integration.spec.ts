@@ -18,8 +18,8 @@ type BusinessResponse = {
 };
 
 type LocationResponse = { id: string; businessId: string; name: string; active: boolean };
-type CategoryResponse = { id: string; businessId: string; slug: string };
-type ServiceResponse = { id: string; businessId: string; slug: string; active: boolean };
+type CategoryResponse = { id: string; businessId: string; slug: string; status: string; archivedAt?: string | null };
+type ServiceResponse = { id: string; businessId: string; slug: string; status: string; archivedAt?: string | null };
 type PolicyResponse = { id: string; businessId: string; policyKey: string; version: number };
 
 const organizationA = 'integration-org-a';
@@ -217,8 +217,49 @@ describe('Phase 1 HTTP and PostgreSQL integration', () => {
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(404);
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${service.id}/archive`).set(headers(organizationA)).expect(201);
     const stored = await prisma.service.findUnique({ where: { id: service.id } });
-    expect(stored).toMatchObject({ businessId: businessA.id, active: false });
-    expect(stored?.deletedAt).not.toBeNull();
+    expect(stored).toMatchObject({ businessId: businessA.id });
+    expect(stored?.archivedAt).not.toBeNull();
+    expect(stored?.deletedAt).toBeNull();
+  });
+
+  it('supports idempotent service and category lifecycle filtering and isolation', async () => {
+    const businessA = await createBusiness(app, organizationA, 'lifecycle-a');
+    const businessB = await createBusiness(app, organizationA, 'lifecycle-b');
+    const categoryA = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).send({ name: 'Lifecycle', slug: 'lifecycle' }).expect(201)).body as CategoryResponse;
+    const categoryB = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/service-categories`).set(headers(organizationA)).send({ name: 'Other', slug: 'other' }).expect(201)).body as CategoryResponse;
+    const serviceA = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services`).set(headers(organizationA)).send({ categoryId: categoryA.id, name: 'Lifecycle Service', slug: 'lifecycle-service', durationMinutes: 30 }).expect(201)).body as ServiceResponse;
+    const serviceB = (await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services`).set(headers(organizationA)).send({ categoryId: categoryB.id, name: 'Other Service', slug: 'other-service', durationMinutes: 30 }).expect(201)).body as ServiceResponse;
+
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toMatchObject({ status: 'active', archivedAt: null }));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(409).expect((response) => expect(response.body).toMatchObject({ code: 'CATEGORY_HAS_ACTIVE_SERVICES' }));
+    const archivedService = await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/archive`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/archive`).set(headers(organizationA)).expect(201).expect((response) => expect(response.body.archivedAt).toBe(archivedService.body.archivedAt));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(0));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services?status=archived`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: serviceA.id, status: 'archived' })])));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services?status=all`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(1));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services?status=invalid`).set(headers(organizationA)).expect(400);
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body.status).toBe('archived'));
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}`).set(headers(organizationA)).send({ name: 'Blocked' }).expect(409).expect((response) => expect(response.body).toMatchObject({ code: 'SERVICE_ARCHIVED' }));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(404);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/archive`).set(headers(organizationA)).expect(201);
+    const archivedCategory = await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201);
+    const archivedCategoryAt = archivedCategory.body.archivedAt;
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201).expect((response) => expect(response.body.archivedAt).toBe(archivedCategoryAt));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(0));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories?status=active`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(0));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories?status=archived`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: categoryA.id, status: 'archived' })])));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories?status=all`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(1));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/restore`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/restore`).set(headers(organizationA)).expect(201).expect((response) => expect(response.body.archivedAt).toBeNull());
+    const finalArchivedCategory = await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201).expect((response) => expect(response.body.archivedAt).toBe(finalArchivedCategory.body.archivedAt));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toMatchObject({ status: 'archived', archivedAt: finalArchivedCategory.body.archivedAt }));
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}`).set(headers(organizationA)).send({ name: 'Blocked' }).expect(409).expect((response) => expect(response.body).toMatchObject({ code: 'CATEGORY_ARCHIVED' }));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessB.id}/service-categories/${categoryA.id}/restore`).set(headers(organizationA)).expect(404);
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/restore`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services/${serviceB.id}`).set(headers(organizationA)).expect(404);
   });
 
   it('enforces cross-organization isolation for locations, categories, services, and policies', async () => {

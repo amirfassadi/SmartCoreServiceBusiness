@@ -71,7 +71,6 @@ describe('Phase 1 domain invariants', () => {
       name: 'Massage',
       slug: 'massage',
       durationMinutes: 60,
-      active: true,
     })).not.toThrow();
 
     expect(() => Service.create({
@@ -80,7 +79,6 @@ describe('Phase 1 domain invariants', () => {
       name: 'Bad Service',
       slug: 'bad-service',
       durationMinutes: 0,
-      active: true,
     })).toThrow();
   });
 });

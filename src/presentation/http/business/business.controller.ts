@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { CreateBusinessUseCase } from '../../../application/business/create-business.use-case';
 import { GetBusinessUseCase } from '../../../application/business/get-business.use-case';
@@ -11,15 +11,21 @@ import { CreateServiceCategoryUseCase } from '../../../application/service-categ
 import { GetServiceCategoriesUseCase } from '../../../application/service-category/get-service-categories.use-case';
 import { CreateServiceUseCase } from '../../../application/service/create-service.use-case';
 import { GetServicesUseCase } from '../../../application/service/get-services.use-case';
+import { GetServiceUseCase } from '../../../application/service/get-service.use-case';
 import { UpdateServiceUseCase } from '../../../application/service/update-service.use-case';
 import { ArchiveServiceUseCase } from '../../../application/service/archive-service.use-case';
+import { RestoreServiceUseCase } from '../../../application/service/restore-service.use-case';
+import { GetServiceCategoryUseCase } from '../../../application/service-category/get-service-category.use-case';
+import { UpdateServiceCategoryUseCase } from '../../../application/service-category/update-service-category.use-case';
+import { ArchiveServiceCategoryUseCase } from '../../../application/service-category/archive-service-category.use-case';
+import { RestoreServiceCategoryUseCase } from '../../../application/service-category/restore-service-category.use-case';
 import { CreateBusinessPolicyUseCase } from '../../../application/business-policy/create-business-policy.use-case';
 import { GetCurrentBusinessPolicyUseCase } from '../../../application/business-policy/get-current-business-policy.use-case';
 import { GetBusinessPolicyVersionsUseCase } from '../../../application/business-policy/get-business-policy-versions.use-case';
 import { UpdateBusinessPolicyUseCase } from '../../../application/business-policy/update-business-policy.use-case';
 import { ExternalRequestContextAdapter, ValidatedExternalContext } from '../context/external-request-context';
 import { EXTERNAL_REQUEST_CONTEXT } from '../context/request-context.tokens';
-import { CreateBusinessDto, UpdateBusinessProfileDto, CreateLocationDto, UpdateLocationDto, CreateServiceCategoryDto, CreateServiceDto, UpdateServiceDto, CreatePolicyDto, UpdatePolicyDto } from '../dto/phase1.dto';
+import { CreateBusinessDto, UpdateBusinessProfileDto, CreateLocationDto, UpdateLocationDto, CreateServiceCategoryDto, CreateServiceDto, UpdateServiceDto, CreatePolicyDto, UpdatePolicyDto, UpdateServiceCategoryDto, LifecycleQueryDto } from '../dto/phase1.dto';
 import { BusinessCreateInput } from '../../../domain/business/entities/business.entity';
 import { BusinessLocationInput } from '../../../domain/business-location/entities/business-location.entity';
 import { ServiceCategoryInput } from '../../../domain/service-category/entities/service-category.entity';
@@ -44,10 +50,16 @@ export class BusinessController {
     private readonly deactivateBusinessLocationUseCase: DeactivateBusinessLocationUseCase,
     private readonly createServiceCategoryUseCase: CreateServiceCategoryUseCase,
     private readonly getServiceCategoriesUseCase: GetServiceCategoriesUseCase,
+    private readonly getServiceCategoryUseCase: GetServiceCategoryUseCase,
+    private readonly updateServiceCategoryUseCase: UpdateServiceCategoryUseCase,
+    private readonly archiveServiceCategoryUseCase: ArchiveServiceCategoryUseCase,
+    private readonly restoreServiceCategoryUseCase: RestoreServiceCategoryUseCase,
     private readonly createServiceUseCase: CreateServiceUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
+    private readonly getServiceUseCase: GetServiceUseCase,
     private readonly updateServiceUseCase: UpdateServiceUseCase,
     private readonly archiveServiceUseCase: ArchiveServiceUseCase,
+    private readonly restoreServiceUseCase: RestoreServiceUseCase,
     private readonly createBusinessPolicyUseCase: CreateBusinessPolicyUseCase,
     private readonly getCurrentBusinessPolicyUseCase: GetCurrentBusinessPolicyUseCase,
     private readonly getBusinessPolicyVersionsUseCase: GetBusinessPolicyVersionsUseCase,
@@ -111,8 +123,28 @@ export class BusinessController {
   }
 
   @Get(':businessId/service-categories')
-  getCategories(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
-    return this.getServiceCategoriesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapCategory));
+  getCategories(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext, @Query() query: LifecycleQueryDto = new LifecycleQueryDto()) {
+    return this.getServiceCategoriesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId), query.status).then((values) => values.map(mapCategory));
+  }
+
+  @Get(':businessId/service-categories/:categoryId')
+  getCategory(@Param('businessId', IdentifierPipe) businessId: string, @Param('categoryId', IdentifierPipe) categoryId: string, @Req() request: RequestWithValidatedContext) {
+    return this.getServiceCategoryUseCase.execute(categoryId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapCategory);
+  }
+
+  @Patch(':businessId/service-categories/:categoryId')
+  updateCategory(@Param('businessId', IdentifierPipe) businessId: string, @Param('categoryId', IdentifierPipe) categoryId: string, @Body() body: UpdateServiceCategoryDto, @Req() request: RequestWithValidatedContext) {
+    return this.updateServiceCategoryUseCase.execute(categoryId, body, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapCategory);
+  }
+
+  @Post(':businessId/service-categories/:categoryId/archive')
+  archiveCategory(@Param('businessId', IdentifierPipe) businessId: string, @Param('categoryId', IdentifierPipe) categoryId: string, @Req() request: RequestWithValidatedContext) {
+    return this.archiveServiceCategoryUseCase.execute(categoryId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapCategory);
+  }
+
+  @Post(':businessId/service-categories/:categoryId/restore')
+  restoreCategory(@Param('businessId', IdentifierPipe) businessId: string, @Param('categoryId', IdentifierPipe) categoryId: string, @Req() request: RequestWithValidatedContext) {
+    return this.restoreServiceCategoryUseCase.execute(categoryId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapCategory);
   }
 
   @Post(':businessId/services')
@@ -122,8 +154,13 @@ export class BusinessController {
   }
 
   @Get(':businessId/services')
-  getServices(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
-    return this.getServicesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then((values) => values.map(mapService));
+  getServices(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext, @Query() query: LifecycleQueryDto = new LifecycleQueryDto()) {
+    return this.getServicesUseCase.execute(this.contextAdapter.getValidatedContext(request.validatedContext, businessId), query.status).then((values) => values.map(mapService));
+  }
+
+  @Get(':businessId/services/:serviceId')
+  getService(@Param('businessId', IdentifierPipe) businessId: string, @Param('serviceId', IdentifierPipe) serviceId: string, @Req() request: RequestWithValidatedContext) {
+    return this.getServiceUseCase.execute(serviceId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
   }
 
   @Patch(':businessId/services/:serviceId')
@@ -134,6 +171,11 @@ export class BusinessController {
   @Post(':businessId/services/:serviceId/archive')
   archiveService(@Param('businessId', IdentifierPipe) businessId: string, @Param('serviceId', IdentifierPipe) serviceId: string, @Req() request: RequestWithValidatedContext) {
     return this.archiveServiceUseCase.execute(serviceId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
+  }
+
+  @Post(':businessId/services/:serviceId/restore')
+  restoreService(@Param('businessId', IdentifierPipe) businessId: string, @Param('serviceId', IdentifierPipe) serviceId: string, @Req() request: RequestWithValidatedContext) {
+    return this.restoreServiceUseCase.execute(serviceId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapService);
   }
 
   @Post(':businessId/policies')

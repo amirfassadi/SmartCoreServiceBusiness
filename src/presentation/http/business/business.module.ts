@@ -16,8 +16,14 @@ import { CreateServiceCategoryUseCase } from '../../../application/service-categ
 import { GetServiceCategoriesUseCase } from '../../../application/service-category/get-service-categories.use-case';
 import { CreateServiceUseCase } from '../../../application/service/create-service.use-case';
 import { GetServicesUseCase } from '../../../application/service/get-services.use-case';
+import { GetServiceUseCase } from '../../../application/service/get-service.use-case';
 import { UpdateServiceUseCase } from '../../../application/service/update-service.use-case';
 import { ArchiveServiceUseCase } from '../../../application/service/archive-service.use-case';
+import { RestoreServiceUseCase } from '../../../application/service/restore-service.use-case';
+import { GetServiceCategoryUseCase } from '../../../application/service-category/get-service-category.use-case';
+import { UpdateServiceCategoryUseCase } from '../../../application/service-category/update-service-category.use-case';
+import { ArchiveServiceCategoryUseCase } from '../../../application/service-category/archive-service-category.use-case';
+import { RestoreServiceCategoryUseCase } from '../../../application/service-category/restore-service-category.use-case';
 import { CreateBusinessPolicyUseCase } from '../../../application/business-policy/create-business-policy.use-case';
 import { GetCurrentBusinessPolicyUseCase } from '../../../application/business-policy/get-current-business-policy.use-case';
 import { GetBusinessPolicyVersionsUseCase } from '../../../application/business-policy/get-business-policy-versions.use-case';
@@ -48,10 +54,16 @@ import {
     { provide: DeactivateBusinessLocationUseCase, useFactory: (business: BusinessRepositoryPort, location: BusinessLocationRepositoryPort) => new DeactivateBusinessLocationUseCase(business, location), inject: [BUSINESS_REPOSITORY, BUSINESS_LOCATION_REPOSITORY] },
     { provide: CreateServiceCategoryUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new CreateServiceCategoryUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
     { provide: GetServiceCategoriesUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new GetServiceCategoriesUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
+    { provide: GetServiceCategoryUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new GetServiceCategoryUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
+    { provide: UpdateServiceCategoryUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new UpdateServiceCategoryUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
+    { provide: ArchiveServiceCategoryUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new ArchiveServiceCategoryUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
+    { provide: RestoreServiceCategoryUseCase, useFactory: (business: BusinessRepositoryPort, category: ServiceCategoryRepositoryPort) => new RestoreServiceCategoryUseCase(business, category), inject: [BUSINESS_REPOSITORY, SERVICE_CATEGORY_REPOSITORY] },
     { provide: CreateServiceUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new CreateServiceUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
     { provide: GetServicesUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new GetServicesUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
+    { provide: GetServiceUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new GetServiceUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
     { provide: UpdateServiceUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new UpdateServiceUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
     { provide: ArchiveServiceUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new ArchiveServiceUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
+    { provide: RestoreServiceUseCase, useFactory: (business: BusinessRepositoryPort, service: ServiceRepositoryPort) => new RestoreServiceUseCase(business, service), inject: [BUSINESS_REPOSITORY, SERVICE_REPOSITORY] },
     { provide: CreateBusinessPolicyUseCase, useFactory: (business: BusinessRepositoryPort, policy: BusinessPolicyRepositoryPort) => new CreateBusinessPolicyUseCase(business, policy), inject: [BUSINESS_REPOSITORY, BUSINESS_POLICY_REPOSITORY] },
     { provide: GetCurrentBusinessPolicyUseCase, useFactory: (business: BusinessRepositoryPort, policy: BusinessPolicyRepositoryPort) => new GetCurrentBusinessPolicyUseCase(business, policy), inject: [BUSINESS_REPOSITORY, BUSINESS_POLICY_REPOSITORY] },
     { provide: GetBusinessPolicyVersionsUseCase, useFactory: (business: BusinessRepositoryPort, policy: BusinessPolicyRepositoryPort) => new GetBusinessPolicyVersionsUseCase(business, policy), inject: [BUSINESS_REPOSITORY, BUSINESS_POLICY_REPOSITORY] },

@@ -35,11 +35,11 @@ export function mapLocation(value: BusinessLocation) {
 }
 
 export function mapCategory(value: ServiceCategory) {
-  return { id: value.id, businessId: value.businessId, name: value.name, slug: value.slug, parentCategoryId: value.parentCategoryId, active: value.active, createdAt: value.createdAt, updatedAt: value.updatedAt };
+  return { id: value.id, businessId: value.businessId, name: value.name, slug: value.slug, parentCategoryId: value.parentCategoryId, status: value.archivedAt === null ? 'active' : 'archived', archivedAt: value.archivedAt, createdAt: value.createdAt, updatedAt: value.updatedAt };
 }
 
 export function mapService(value: Service) {
-  return { id: value.id, businessId: value.businessId, categoryId: value.categoryId, name: value.name, slug: value.slug, durationMinutes: value.durationMinutes, active: value.active, createdAt: value.createdAt, updatedAt: value.updatedAt };
+  return { id: value.id, businessId: value.businessId, categoryId: value.categoryId, name: value.name, slug: value.slug, durationMinutes: value.durationMinutes, status: value.archivedAt === null ? 'active' : 'archived', archivedAt: value.archivedAt, createdAt: value.createdAt, updatedAt: value.updatedAt };
 }
 
 export function mapPolicy(value: BusinessPolicy) {

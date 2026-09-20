@@ -7,15 +7,18 @@ export type CreateServiceInput = {
   name: string;
   slug: string;
   durationMinutes: number;
-  active?: boolean;
+  archivedAt?: Date;
 };
+
+export type LifecycleStatus = 'active' | 'archived' | 'all';
 
 export interface ServiceRepositoryPort {
   create(input: CreateServiceInput, scope: RepositoryScope & { businessId: string }): Promise<Service>;
   getById(id: string, scope: RepositoryScope & { businessId: string }): Promise<Service | null>;
-  listByBusiness(scope: RepositoryScope & { businessId: string }): Promise<Service[]>;
+  listByBusiness(status: LifecycleStatus, scope: RepositoryScope & { businessId: string }): Promise<Service[]>;
   update(id: string, input: Partial<CreateServiceInput>, scope: RepositoryScope & { businessId: string }): Promise<Service>;
   archive(id: string, scope: RepositoryScope & { businessId: string }): Promise<Service>;
+  restore(id: string, scope: RepositoryScope & { businessId: string }): Promise<Service>;
   validateCategoryOwnership(categoryId: string, scope: RepositoryScope & { businessId: string }): Promise<boolean>;
   getBySlug(slug: string, scope: RepositoryScope & { businessId: string }): Promise<Service | null>;
 }

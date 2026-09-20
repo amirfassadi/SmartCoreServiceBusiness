@@ -17,10 +17,16 @@ import { UpdateBusinessLocationUseCase } from '../../src/application/business-lo
 import { DeactivateBusinessLocationUseCase } from '../../src/application/business-location/deactivate-business-location.use-case';
 import { CreateServiceCategoryUseCase } from '../../src/application/service-category/create-service-category.use-case';
 import { GetServiceCategoriesUseCase } from '../../src/application/service-category/get-service-categories.use-case';
+import { GetServiceCategoryUseCase } from '../../src/application/service-category/get-service-category.use-case';
+import { UpdateServiceCategoryUseCase } from '../../src/application/service-category/update-service-category.use-case';
+import { ArchiveServiceCategoryUseCase } from '../../src/application/service-category/archive-service-category.use-case';
+import { RestoreServiceCategoryUseCase } from '../../src/application/service-category/restore-service-category.use-case';
 import { CreateServiceUseCase } from '../../src/application/service/create-service.use-case';
 import { GetServicesUseCase } from '../../src/application/service/get-services.use-case';
+import { GetServiceUseCase } from '../../src/application/service/get-service.use-case';
 import { UpdateServiceUseCase } from '../../src/application/service/update-service.use-case';
 import { ArchiveServiceUseCase } from '../../src/application/service/archive-service.use-case';
+import { RestoreServiceUseCase } from '../../src/application/service/restore-service.use-case';
 import { CreateBusinessPolicyUseCase } from '../../src/application/business-policy/create-business-policy.use-case';
 import { GetCurrentBusinessPolicyUseCase } from '../../src/application/business-policy/get-current-business-policy.use-case';
 import { GetBusinessPolicyVersionsUseCase } from '../../src/application/business-policy/get-business-policy-versions.use-case';
@@ -52,7 +58,7 @@ function controller(): BusinessController {
   return new BusinessController(
     useCase<CreateBusinessUseCase>(), useCase<GetBusinessUseCase>(), useCase<UpdateBusinessProfileUseCase>(),
     useCase<AddBusinessLocationUseCase>(), useCase<GetBusinessLocationsUseCase>(true), useCase<UpdateBusinessLocationUseCase>(), useCase<DeactivateBusinessLocationUseCase>(),
-    useCase<CreateServiceCategoryUseCase>(), useCase<GetServiceCategoriesUseCase>(true), useCase<CreateServiceUseCase>(), useCase<GetServicesUseCase>(true), useCase<UpdateServiceUseCase>(), useCase<ArchiveServiceUseCase>(),
+    useCase<CreateServiceCategoryUseCase>(), useCase<GetServiceCategoriesUseCase>(true), useCase<GetServiceCategoryUseCase>(), useCase<UpdateServiceCategoryUseCase>(), useCase<ArchiveServiceCategoryUseCase>(), useCase<RestoreServiceCategoryUseCase>(), useCase<CreateServiceUseCase>(), useCase<GetServicesUseCase>(true), useCase<GetServiceUseCase>(), useCase<UpdateServiceUseCase>(), useCase<ArchiveServiceUseCase>(), useCase<RestoreServiceUseCase>(),
     useCase<CreateBusinessPolicyUseCase>(), useCase<GetCurrentBusinessPolicyUseCase>(), useCase<GetBusinessPolicyVersionsUseCase>(true), useCase<UpdateBusinessPolicyUseCase>(), contextAdapter,
   );
 }

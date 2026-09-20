@@ -9,7 +9,6 @@ export interface ServiceInput {
   name: string;
   slug: string;
   durationMinutes: number;
-  active?: boolean;
 }
 
 export class Service {
@@ -19,7 +18,7 @@ export class Service {
   name: string;
   slug: string;
   durationMinutes: number;
-  active: boolean;
+  archivedAt: Date | null;
   readonly createdAt: Date;
   updatedAt: Date;
 
@@ -30,7 +29,7 @@ export class Service {
     name: string;
     slug: string;
     durationMinutes: number;
-    active?: boolean;
+    archivedAt?: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
   }) {
@@ -41,7 +40,7 @@ export class Service {
     if (!this.name) throw new ValidationError('Service name is required.');
     this.slug = Slug.create(input.slug).toString();
     this.durationMinutes = ServiceDuration.create(input.durationMinutes).valueOf();
-    this.active = input.active ?? true;
+    this.archivedAt = input.archivedAt ?? null;
     this.createdAt = input.createdAt ?? new Date();
     this.updatedAt = input.updatedAt ?? this.createdAt;
   }
@@ -50,8 +49,4 @@ export class Service {
     return new Service(input);
   }
 
-  archive(): void {
-    this.active = false;
-    this.updatedAt = new Date();
-  }
 }

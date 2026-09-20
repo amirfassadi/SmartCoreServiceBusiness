@@ -350,7 +350,7 @@ This keeps the implementation aligned with the architecture while avoiding unnec
 
 Responsibility:
 - service definition for a business
-- name / slug / duration / required category / active state
+- name / slug / duration / required category / archivedAt lifecycle state
 - business-scoped catalog membership
 - policy references that are owned by Service Business only
 
@@ -361,7 +361,7 @@ Suggested properties:
 - name
 - slug
 - durationMinutes
-- active
+- archivedAt
 - createdAt
 - updatedAt
 
@@ -379,6 +379,16 @@ Important boundary rule:
 - Service does not own reservation semantics
 - Service does not own scheduling conflict logic
 - Service may keep a lightweight external reference or policy key only when it is a Service Business-owned policy, not a Scheduling or Payment model
+
+Service lifecycle:
+
+- `archivedAt: null` means `ACTIVE`.
+- A timestamp means `ARCHIVED`.
+- Archived Services remain retrievable by ID but cannot be updated.
+- GetById returns archived Services with HTTP 200.
+- Updating an archived Service returns HTTP 409.
+- Archive and restore are idempotent.
+- List operations support `status=active`, `status=archived`, and `status=all`; the default is `status=active`.
 
 ### 6.6 Business Policy
 
@@ -545,7 +555,7 @@ Phase 1 domain invariants:
 - when parent_category_id is provided, the parent category must belong to the same business
 - cross-business parent category references are rejected
 - service slug uniqueness within business
-- archived or inactive services must not be treated as active catalog items
+- archived Services must not be treated as active catalog items
 - policies must be versioned and unique by business and policy key
 - cross-business references must be rejected at the domain boundary
 - tenant/business isolation must be enforced at repository and service layers
@@ -568,7 +578,7 @@ Database constraints should reflect the most important invariants:
 - uniqueness on service slug within business
 - uniqueness on business profile per business
 - foreign key on businessId for associated entities
-- indexes on businessId and active fields
+- indexes on businessId and lifecycle fields where filtering is required
 
 ## 10. External References
 
@@ -655,7 +665,7 @@ Responsibilities:
 - update service
 - archive service
 - get service by id within business scope
-- list services by business and active state
+- list services by business and explicit lifecycle status
 - validate category ownership
 
 Error behavior:
@@ -1037,7 +1047,7 @@ Columns:
 - name VARCHAR
 - slug VARCHAR
 - parent_category_id UUID NULL FK -> service_categories.id
-- active BOOLEAN
+- archived_at TIMESTAMP NULL
 - created_at TIMESTAMP
 - updated_at TIMESTAMP
 Constraints:
@@ -1045,6 +1055,15 @@ Constraints:
 Indexes:
 - business_id
 - parent_category_id
+- archived_at
+
+ServiceCategory lifecycle:
+- `archivedAt: null` means `ACTIVE`.
+- A timestamp means `ARCHIVED`.
+- Archived categories remain retrievable by ID with HTTP 200 but cannot be updated; update returns HTTP 409.
+- Archive and restore are idempotent.
+- Category archive returns HTTP 409 while the category contains one or more active Services.
+- Category lists support `status=active`, `status=archived`, and `status=all`; the default is `status=active`.
 
 ### 13.5 services
 Purpose:
@@ -1056,7 +1075,7 @@ Columns:
 - name VARCHAR
 - slug VARCHAR
 - duration_minutes INT
-- active BOOLEAN
+- archived_at TIMESTAMP NULL
 - created_at TIMESTAMP
 - updated_at TIMESTAMP
 - deleted_at TIMESTAMP NULL
@@ -1068,7 +1087,12 @@ Constraints:
 Indexes:
 - business_id
 - category_id
-- active
+- archived_at
+
+Service lifecycle persistence:
+- `archivedAt: null` means `ACTIVE`.
+- A timestamp means `ARCHIVED`.
+- `deletedAt` remains independent and is not changed by archive or restore.
 
 Important boundary rule:
 - no local booking policy JSON field in Phase 1
@@ -1126,7 +1150,7 @@ Key design principles:
 - organizationId is a foreign reference field, not a duplicated linked table
 - businessId is required on all child entities
 - unique constraints enforce slug and profile uniqueness
-- indexes on businessId and active fields are required
+- indexes on businessId and lifecycle fields where filtering is required
 - soft delete used only if business history requires it
 - migrations limited to Service Business-owned data only
 

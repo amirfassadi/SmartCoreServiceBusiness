@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsEmail, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const localePattern = /^[a-z]{2,3}(?:-[A-Z0-9]{2,8})?$/;
@@ -195,6 +195,30 @@ export class UpdateServiceDto {
   @IsInt()
   @Min(1)
   durationMinutes?: number;
+}
+
+export class UpdateServiceCategoryDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(slugPattern)
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(identifierPattern)
+  parentCategoryId?: string;
+}
+
+export class LifecycleQueryDto {
+  @IsOptional()
+  @IsIn(['active', 'archived', 'all'])
+  status: 'active' | 'archived' | 'all' = 'active';
 }
 
 export class CreatePolicyDto {

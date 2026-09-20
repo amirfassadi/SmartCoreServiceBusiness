@@ -15,6 +15,7 @@ export class UpdateServiceUseCase {
     await requireBusinessScope(this.businessRepository, context);
     const service = await this.serviceRepository.getById(serviceId, context);
     if (!service) throw new ValidationError('Service was not found.', 'SERVICE_NOT_FOUND');
+    if (service.archivedAt) throw new ValidationError('Archived services cannot be updated.', 'SERVICE_ARCHIVED');
     if (input.categoryId && !(await this.serviceRepository.validateCategoryOwnership(input.categoryId, context))) {
       throw new ValidationError('Invalid service category.', 'INVALID_SERVICE_CATEGORY');
     }
