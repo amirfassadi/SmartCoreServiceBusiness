@@ -14,6 +14,16 @@
 
 The following authenticated-style routes are implemented by the current `BusinessController`. They require an external organization/business context; local development tests use the dedicated test-context middleware and headers, which are not production authentication.
 
+### Frontend contract boundary
+
+The Frontend consumes the HTTP API contract only. It must not import backend Domain entities, Application use cases, repository ports, or Prisma models. The intended future dependency chain is:
+
+```text
+Backend Domain -> Application -> HTTP API -> OpenAPI Contract -> Generated TypeScript API Client -> Frontend
+```
+
+No OpenAPI document or generated TypeScript API client currently exists in this repository. OpenAPI definition and client generation are future API-stabilization steps.
+
 ### Business
 
 ```http

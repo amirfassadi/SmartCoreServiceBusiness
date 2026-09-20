@@ -4,6 +4,14 @@
 
 The current repository supports generic Business, ServiceCategory, Service, BusinessLocation, and BusinessPolicy data through stable domain, persistence, and API contracts. Payment providers, Notification providers, Storage, Calendar, Scheduling, Resource, Identity, and Authorization integrations are future adapters; no provider-specific implementation is present here.
 
+## Frontend target architecture
+
+The target Frontend is a reusable, module-oriented platform surface rather than a business-specific website. Its approved direction is TypeScript, Next.js App Router, React, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form, Zod, and next-intl. Zustand is optional and only for genuine complex shared client state.
+
+The target includes Public Web and Admin Dashboard applications. Persian and RTL support are first-class requirements. Frontend validation improves UX but never replaces backend validation, and Frontend visibility of `businessId` is not a security boundary.
+
+The Frontend must consume context and permissions provided by the backend/authentication boundary. Backend application/repository isolation remains authoritative; hiding or omitting `businessId` in the Frontend is not a security boundary.
+
 ## 1. Goal
 
 A new customer should primarily require configuration.

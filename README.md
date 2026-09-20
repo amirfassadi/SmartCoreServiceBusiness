@@ -32,6 +32,40 @@ The current repository implements the Service Business Phase 1 backend:
 
 Identity, Authorization, Customer, Staff, Resource, Availability, Booking/Reservation, Payment/Finance, Deposit, Notification, and SMS integration remain external or deferred boundaries. They are described architecturally but are not production bounded contexts in this repository.
 
+## Frontend Architecture Decision
+
+The Frontend is a target architecture only; no Frontend application exists in this repository. The approved target stack is TypeScript, Next.js with App Router, React, Tailwind CSS, shadcn/ui, TanStack Query for server/API state, React Hook Form with Zod for forms and client validation, and next-intl for internationalization. Zustand is optional and reserved for genuine complex shared client state, never server state.
+
+The target is reusable across multiple service-business types and includes a Public Web and an Admin Dashboard. Persian language support and RTL are first-class requirements from day one. The Frontend consumes the HTTP API contract only and must not import backend Domain entities, Application use cases, or repositories. No OpenAPI document or generated TypeScript API client currently exists.
+
+Target development sequence:
+
+```text
+Backend Domain Stabilization
+  ↓
+API Contract Audit
+  ↓
+API Stabilization
+  ↓
+Identity / Authentication Boundary
+  ↓
+OpenAPI Contract
+  ↓
+Generated TypeScript API Client
+  ↓
+Frontend Foundation
+  ↓
+Shared UI / Design System
+  ↓
+Admin Dashboard
+  ↓
+Public Business Website
+  ↓
+Booking UI
+  ↓
+Additional Platform Modules
+```
+
 The first deployment may be a beauty salon, but the product boundary remains generic.
 
 ## Architectural Position

@@ -43,6 +43,12 @@ Not implemented here:
 - generic Authorization engine
 - Customer, Staff, Resource, Availability, Booking/Reservation, Payment/Finance, Deposit, Notification, or SMS bounded contexts
 
+Frontend status:
+- Frontend code and repository structure are not started in this repository.
+- The approved Frontend stack is target architecture only: TypeScript, Next.js App Router, React, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form, Zod, next-intl, and optional Zustand for genuine complex client state.
+- Persian language support and RTL are required from the beginning.
+- No OpenAPI contract or generated TypeScript API client currently exists.
+
 ### 2.2 Repository status
 
 The current repository contains the implemented Phase 1 backend. Git history includes implementation commits for Business scope enforcement and Service/ServiceCategory lifecycle management.

@@ -168,3 +168,25 @@ One customer gets an isolated application/database.
 The application points to a customer-controlled database.
 
 The domain model must not depend on a particular deployment mode.
+
+## 9. Frontend Architecture Decision (Target)
+
+The Frontend is not implemented in the current repository. The approved target uses TypeScript, Next.js App Router, React, Tailwind CSS, shadcn/ui, TanStack Query for server/API state, React Hook Form with Zod, next-intl, and optional Zustand only for genuine complex shared client state. Persian and RTL support are required from the beginning.
+
+The target has two primary applications: Public Web for customer-facing Business, profile, location, category, and Service experiences; and Admin Dashboard for Business, Profile, Location, Policy, ServiceCategory, Service, and lifecycle management. Booking, Staff, Payment, Deposit, Notification, and other future capabilities remain deferred according to backend boundaries.
+
+Frontend dependency boundary:
+
+```text
+Backend Domain -> Application -> HTTP API -> OpenAPI Contract (future) -> Generated TypeScript API Client (future) -> Frontend
+```
+
+No OpenAPI document, generated client, Frontend directory, or Frontend package exists currently. The conceptual target monorepo structure must not be created in this backend repository during Phase 1.
+
+### Current versus target status
+
+- **Currently implemented:** Phase 1 backend HTTP API and DTO validation for Business, Profile, Location, ServiceCategory, Service, and BusinessPolicy.
+- **Planned:** OpenAPI contract, generated TypeScript API client, Public Web, Admin Dashboard, shared UI, validation, configuration, and i18n packages.
+- **Deferred:** Booking UI, Staff, Resource, Availability, Payment, Deposit, Notification/SMS, and Identity/Authorization UI or integrations.
+
+Target sequence: backend stabilization -> API contract audit -> API stabilization -> Identity/authentication boundary -> OpenAPI -> generated API client -> Frontend foundation -> shared UI/design system -> Admin Dashboard -> Public Business Website -> Booking UI -> additional platform modules.

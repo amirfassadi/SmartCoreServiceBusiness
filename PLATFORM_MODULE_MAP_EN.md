@@ -1086,6 +1086,12 @@ Current repository implementation is limited to the Service Business Phase 1 fou
 
 `SmartCoreServiceBusiness` is a **domain application**, not the platform foundation.
 
+## Frontend Architecture Decision (Target Only)
+
+The Frontend is not implemented in this repository. The approved target uses TypeScript, Next.js App Router, React, Tailwind CSS, shadcn/ui, TanStack Query for server state, React Hook Form with Zod, and next-intl. Zustand is optional and reserved for genuine complex shared client state. Persian and RTL support are first-class requirements.
+
+The target includes reusable Public Web and Admin Dashboard applications. Both consume the backend HTTP API through a future OpenAPI contract and generated TypeScript API client; neither may import backend Domain, Application, Infrastructure, or repository code. No OpenAPI document, generated client, frontend directory, or frontend package exists currently.
+
 Its purpose is to model businesses that sell or provide services.
 
 ## Owns

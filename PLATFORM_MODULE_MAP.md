@@ -1105,6 +1105,12 @@ Settlement مسئول موارد زیر است:
 
 `SmartCoreServiceBusiness` یک **Domain Application** است، نه Foundation پلتفرم.
 
+## تصمیم معماری Frontend (فقط معماری هدف)
+
+Frontend در این مخزن پیاده‌سازی نشده است. فناوری‌های هدف عبارت‌اند از TypeScript، Next.js با App Router، React، Tailwind CSS، shadcn/ui، TanStack Query برای وضعیت سرور، React Hook Form به همراه Zod برای فرم و اعتبارسنجی، و next-intl برای بین‌المللی‌سازی. Zustand فقط در صورت شکل‌گیری وضعیت مشترک پیچیده و واقعی مجاز است. پشتیبانی فارسی و RTL از ابتدا الزامی است.
+
+معماری هدف شامل Public Web و Admin Dashboard قابل استفاده مجدد است. هر دو برنامه باید فقط از طریق HTTP API، قرارداد آینده OpenAPI و کلاینت TypeScript تولیدشده با backend ارتباط داشته باشند و نباید مستقیماً به Domain، Application، Infrastructure یا Repository وابسته شوند. در حال حاضر سند OpenAPI، کلاینت تولیدشده و ساختار Frontend وجود ندارد.
+
 هدف آن مدل‌سازی کسب‌وکارهایی است که خدمات ارائه می‌کنند.
 
 ## مسئولیت‌ها
