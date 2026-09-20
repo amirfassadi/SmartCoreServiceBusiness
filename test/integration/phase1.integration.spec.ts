@@ -244,9 +244,13 @@ describe('Phase 1 HTTP and PostgreSQL integration', () => {
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(201);
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(201);
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/archive`).set(headers(organizationA)).expect(201);
+    await request(app.getHttpServer()).patch(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}`).set(headers(organizationA)).send({ parentCategoryId: categoryA.id }).expect(422).expect((response) => expect(response.body).toMatchObject({ code: 'INVALID_PARENT_CATEGORY' }));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body.parentCategoryId).toBeUndefined());
     const archivedCategory = await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201);
     const archivedCategoryAt = archivedCategory.body.archivedAt;
     await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/service-categories/${categoryA.id}/archive`).set(headers(organizationA)).expect(201).expect((response) => expect(response.body.archivedAt).toBe(archivedCategoryAt));
+    await request(app.getHttpServer()).post(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}/restore`).set(headers(organizationA)).expect(409).expect((response) => expect(response.body).toMatchObject({ code: 'CATEGORY_ARCHIVED' }));
+    await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/services/${serviceA.id}`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body.status).toBe('archived'));
     await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(0));
     await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories?status=active`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toHaveLength(0));
     await request(app.getHttpServer()).get(`/api/v1/businesses/${businessA.id}/service-categories?status=archived`).set(headers(organizationA)).expect(200).expect((response) => expect(response.body).toEqual(expect.arrayContaining([expect.objectContaining({ id: categoryA.id, status: 'archived' })])));

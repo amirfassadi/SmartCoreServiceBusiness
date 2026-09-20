@@ -48,6 +48,7 @@ export class ServiceCategoryPrismaRepository implements ServiceCategoryRepositor
     const current = await this.getById(id, scope);
     if (!current) throw new DomainError('CATEGORY_NOT_FOUND', 'Category was not found in the organization scope.');
     if (current.archivedAt) throw new DomainError('CATEGORY_ARCHIVED', 'Archived categories cannot be updated.');
+    if (input.parentCategoryId === id) throw new DomainError('INVALID_PARENT_CATEGORY', 'Category cannot be its own parent.');
     if (input.parentCategoryId && !(await this.validateParentOwnership(input.parentCategoryId, scope))) throw new DomainError('INVALID_PARENT_CATEGORY', 'Parent category is outside the business scope.');
     try {
       const record = await this.prisma.serviceCategory.update({ where: { id }, data: { name: input.name, slug: input.slug, parentCategoryId: input.parentCategoryId } });

@@ -59,7 +59,15 @@ export class ServicePrismaRepository implements ServiceRepositoryPort {
   }
 
   async restore(id: string, scope: RepositoryScope & { businessId: string }): Promise<Service> {
-    await this.ensureScoped(id, scope);
+    const current = await this.getById(id, scope);
+    if (!current) throw new DomainError('SERVICE_NOT_FOUND', 'Service was not found in the organization scope.');
+    if (current.archivedAt === null) return current;
+    const category = await this.prisma.serviceCategory.findFirst({
+      where: { id: current.categoryId, businessId: scope.businessId, business: { organizationId: scope.organizationId } },
+      select: { archivedAt: true },
+    });
+    if (!category) throw new DomainError('INVALID_SERVICE_CATEGORY', 'Service category is outside the business scope.');
+    if (category.archivedAt !== null) throw new DomainError('CATEGORY_ARCHIVED', 'Service cannot be restored while its category is archived.');
     const record = await this.prisma.service.update({ where: { id }, data: { archivedAt: null } });
     return this.map(record);
   }
