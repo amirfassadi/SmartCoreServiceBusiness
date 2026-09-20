@@ -23,7 +23,11 @@ Business
 
 `organization_id` references the owning organizational context; the implementation must use the Organization/Tenancy contract rather than duplicating ownership logic.
 
-## 3. Customer Relationship
+## 3. Current Phase 1 Domain Scope
+
+The current implementation owns Business, BusinessProfile, BusinessLocation, ServiceCategory, Service, and BusinessPolicy. Customer, Staff, Appointment, Reservation, Payment, and Resource concepts below are architectural integration targets and are not current domain entities in this repository.
+
+## 4. Customer Relationship (Future Boundary)
 
 ```text
 BusinessCustomer
@@ -37,7 +41,7 @@ BusinessCustomer
 
 This is not the person's identity.
 
-## 4. Staff Relationship
+## 5. Staff Relationship (Future Boundary)
 
 ```text
 BusinessStaff
@@ -51,7 +55,7 @@ BusinessStaff
 
 A staff member may also be a customer.
 
-## 5. Manager / Owner
+## 6. Manager / Owner (Future Identity/Authorization Boundary)
 
 Manager and Owner are business relationships/capabilities, not global identity roles.
 
@@ -62,7 +66,7 @@ Business A: Owner + Customer
 Business B: Staff + Customer
 ```
 
-## 6. Service
+## 7. Service
 
 ```text
 Service
@@ -70,28 +74,29 @@ Service
 ├── business_id
 ├── category_id
 ├── duration
-├── price_reference
-├── active
-├── booking_policy
-└── translations
+├── archived_at
+├── created_at
+├── updated_at
+└── deleted_at (independent nullable persistence field)
 ```
 
-Price execution belongs to Pricing/Finance contracts. Appointment snapshots preserve the effective commercial terms.
+The current Prisma model contains name, slug, durationMinutes, archivedAt, and deletedAt. Price execution, booking policy, and translations are future integration concerns, not current Service fields. Active means `archivedAt = null`; archived means `archivedAt` has a timestamp.
 
-## 7. Location
+## 8. Location
 
 ```text
 Location
 ├── id
 ├── business_id
 ├── address
-├── coordinates
 ├── timezone
 ├── active
-└── translations
+└── timestamps
 ```
 
-## 8. Appointment
+The current Prisma model contains name, optional address, timezone, active, and timestamps. Coordinates and translations are future concerns.
+
+## 9. Appointment (Future Boundary)
 
 Appointment is the business representation of a service booking.
 
@@ -115,7 +120,7 @@ Appointment
 
 Scheduling/Reservation owns the actual time/resource reservation.
 
-## 9. Appointment Lifecycle
+## 10. Appointment Lifecycle (Future Boundary)
 
 ```text
 pending
@@ -131,7 +136,7 @@ pending
 
 State transitions must be explicit and auditable.
 
-## 10. Snapshots
+## 11. Snapshots (Future Booking Boundary)
 
 Historical appointments must not change because a service later changes.
 
@@ -143,9 +148,19 @@ At booking time snapshot:
 - relevant service title/locale
 - cancellation policy version where required
 
-## 11. Invariants
+## 12. Current and Future Invariants
 
-Examples:
+Current Phase 1 examples:
+
+- Service belongs to exactly one Business.
+- ServiceCategory belongs to exactly one Business.
+- Service category must belong to the same Business as the Service.
+- Category parent must belong to the same Business.
+- A Category cannot be its own parent.
+- Archived Services and Categories cannot be updated.
+- A Category cannot be archived while it has active Services.
+
+Future Booking examples:
 
 - appointment belongs to exactly one business
 - customer relationship belongs to the same business
@@ -156,6 +171,6 @@ Examples:
 - confirmed appointment has a valid reservation
 - payment-required appointment cannot be confirmed without successful financial confirmation unless an explicit policy says otherwise
 
-## 12. Relation as First-Class Concept
+## 13. Relation as First-Class Concept
 
 Where the broader SmartCore platform exposes a first-class Relation model, Service Business should consume it rather than creating competing global relationship semantics.

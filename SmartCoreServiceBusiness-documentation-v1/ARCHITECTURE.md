@@ -25,6 +25,16 @@ Service Business is a domain application in the SmartCore ecosystem.
 
 ## 2. Layers
 
+The current backend implements these layers for the Phase 1 Service Business scope:
+
+- **Presentation:** NestJS HTTP controller, DTO validation, request context adapter, response mappers, and stable HTTP error mapping.
+- **Application:** Business, Location, ServiceCategory, Service, and BusinessPolicy use cases coordinating ports and lifecycle rules.
+- **Domain:** Business-owned entities, value objects, repository ports, and domain errors/events.
+- **Infrastructure:** Prisma schema, migrations, Prisma repositories, and external integration boundaries.
+- **Shared:** Request context and stable error-code contracts used across layers.
+
+The dependency direction is Presentation -> Application -> Domain/ports, with Infrastructure implementing the ports. Domain code does not depend on Prisma or HTTP.
+
 ### Presentation
 
 - Public API

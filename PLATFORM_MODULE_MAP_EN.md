@@ -1082,6 +1082,8 @@ This becomes especially important when Marketplace functionality is introduced.
 
 # 29. Service Business
 
+Current repository implementation is limited to the Service Business Phase 1 foundation: Business, Business Profile, Business Location, Service Category, Service, and Business Policy. The capabilities described below are ownership boundaries and future integration targets unless explicitly implemented by the current Phase 1 backend.
+
 `SmartCoreServiceBusiness` is a **domain application**, not the platform foundation.
 
 Its purpose is to model businesses that sell or provide services.

@@ -1,5 +1,9 @@
 # Extensibility
 
+## Current implementation boundary
+
+The current repository supports generic Business, ServiceCategory, Service, BusinessLocation, and BusinessPolicy data through stable domain, persistence, and API contracts. Payment providers, Notification providers, Storage, Calendar, Scheduling, Resource, Identity, and Authorization integrations are future adapters; no provider-specific implementation is present here.
+
 ## 1. Goal
 
 A new customer should primarily require configuration.

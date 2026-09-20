@@ -10,7 +10,77 @@
 - localized messages
 - provider-neutral
 
-## 2. Public Business
+## 2. Implemented Phase 1 API
+
+The following authenticated-style routes are implemented by the current `BusinessController`. They require an external organization/business context; local development tests use the dedicated test-context middleware and headers, which are not production authentication.
+
+### Business
+
+```http
+POST /api/v1/businesses
+GET /api/v1/businesses/{businessId}
+PATCH /api/v1/businesses/{businessId}/profile
+```
+
+### BusinessLocation
+
+```http
+POST /api/v1/businesses/{businessId}/locations
+GET /api/v1/businesses/{businessId}/locations
+PATCH /api/v1/businesses/{businessId}/locations/{locationId}
+POST /api/v1/businesses/{businessId}/locations/{locationId}/deactivate
+```
+
+### ServiceCategory
+
+```http
+POST /api/v1/businesses/{businessId}/service-categories
+GET /api/v1/businesses/{businessId}/service-categories?status=active|archived|all
+GET /api/v1/businesses/{businessId}/service-categories/{categoryId}
+PATCH /api/v1/businesses/{businessId}/service-categories/{categoryId}
+POST /api/v1/businesses/{businessId}/service-categories/{categoryId}/archive
+POST /api/v1/businesses/{businessId}/service-categories/{categoryId}/restore
+```
+
+### Service
+
+```http
+POST /api/v1/businesses/{businessId}/services
+GET /api/v1/businesses/{businessId}/services?status=active|archived|all
+GET /api/v1/businesses/{businessId}/services/{serviceId}
+PATCH /api/v1/businesses/{businessId}/services/{serviceId}
+POST /api/v1/businesses/{businessId}/services/{serviceId}/archive
+POST /api/v1/businesses/{businessId}/services/{serviceId}/restore
+```
+
+### BusinessPolicy
+
+```http
+POST /api/v1/businesses/{businessId}/policies
+GET /api/v1/businesses/{businessId}/policies/{policyKey}
+GET /api/v1/businesses/{businessId}/policies/{policyKey}/versions
+PUT /api/v1/businesses/{businessId}/policies/{policyKey}
+```
+
+Request DTOs, validation, response mappers, and exact lifecycle/error behavior are implemented in `src/presentation/http` and covered by the unit/integration tests.
+
+### Implemented response and status behavior
+
+- Create operations return HTTP 201.
+- Successful reads and updates return HTTP 200.
+- Deactivate/archive/restore action routes return HTTP 201 in the current controller.
+- Validation errors return HTTP 400 with `{ code, message, details }`.
+- Business access denial returns HTTP 403.
+- Missing scoped resources return HTTP 404.
+- Lifecycle and uniqueness conflicts return HTTP 409.
+- Invalid parent/category references return HTTP 422.
+- Unexpected unhandled failures use the generic `PERSISTENCE_FAILURE` HTTP 500 fallback.
+
+Implemented lifecycle and scope error codes include `BUSINESS_ACCESS_DENIED`, `BUSINESS_NOT_FOUND`, `BUSINESS_ARCHIVED`, `LOCATION_NOT_FOUND`, `CATEGORY_NOT_FOUND`, `SERVICE_NOT_FOUND`, `SERVICE_ARCHIVED`, `CATEGORY_ARCHIVED`, `CATEGORY_HAS_ACTIVE_SERVICES`, `INVALID_PARENT_CATEGORY`, `INVALID_SERVICE_CATEGORY`, and `POLICY_VERSION_CONFLICT`. `CROSS_BUSINESS_REFERENCE` is defined and mapped for the stable contract, while current repository paths commonly return more specific scoped-resource or invalid-reference codes.
+
+## 3. Planned / Deferred Public API
+
+The following routes are conceptual architecture targets only. They are not implemented by the current controller:
 
 ```http
 GET /api/public/business/{slug}
@@ -20,7 +90,7 @@ GET /api/public/business/{slug}/locations
 GET /api/public/business/{slug}/availability
 ```
 
-## 3. Appointment
+## 4. Planned Appointment API
 
 ```http
 POST /api/public/business/{slug}/appointments
@@ -30,7 +100,7 @@ POST /api/public/appointments/{id}/cancel
 
 Exact endpoint naming may evolve with the platform API standard.
 
-## 4. Authenticated Operations
+## 5. External Authentication Context
 
 Authenticated requests derive the person from the Identity session/token.
 
@@ -45,7 +115,7 @@ Idempotency-Key: <unique-key>
 
 The actual platform standard may replace these headers with a context/token mechanism.
 
-## 4.1 Service and Category Lifecycle
+## 5.1 Implemented Service and Category Lifecycle
 
 Service and ServiceCategory use `archivedAt` as their lifecycle marker:
 
@@ -67,7 +137,7 @@ GET /api/v1/businesses/{businessId}/service-categories?status=all
 
 The default is `status=active`. Invalid status values are rejected as validation errors.
 
-## 5. Availability Request
+## 6. Conceptual Availability Request
 
 Conceptual input:
 
@@ -81,7 +151,7 @@ Conceptual input:
 }
 ```
 
-## 6. Appointment Request
+## 7. Conceptual Appointment Request
 
 ```json
 {
@@ -95,7 +165,7 @@ Conceptual input:
 
 Customer identity is derived from authentication.
 
-## 7. Error Contract
+## 8. Error Contract
 
 ```json
 {
@@ -107,7 +177,7 @@ Customer identity is derived from authentication.
 
 Clients must use `code` for programmatic behavior.
 
-## 8. HTTP Statuses
+## 9. HTTP Statuses
 
 Typical:
 

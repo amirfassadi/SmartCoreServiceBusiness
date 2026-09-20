@@ -1,5 +1,13 @@
 # Identity Integration
 
+## Current implementation boundary
+
+Identity and generic Authorization are external integration boundaries, not implemented production subsystems in this repository. This repository does not contain Person, User, credentials, sessions, tokens, organizations, memberships, JWT validation, or an authorization engine.
+
+The current backend accepts an external `organizationId` plus optional `actorId` through its request-context adapter and derives the selected `businessId` from the versioned route. Local development/integration tests may use test headers to populate this context. That mechanism is for development/testing only and must not be treated as production authentication or authorization.
+
+Production enforcement depends on the upstream Identity/Organization/Authorization integration supplying authenticated and authorized context.
+
 ## 1. Ownership
 
 Identity owns:

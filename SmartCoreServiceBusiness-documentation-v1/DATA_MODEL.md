@@ -6,18 +6,20 @@ Persist Service Business-owned state only.
 
 Do not duplicate Identity's Person, credential, session, or organization internals.
 
-## 2. Main Tables / Aggregates
+## 2. Current Phase 1 Tables / Aggregates
 
-Potential aggregate roots:
+The current Prisma schema persists only these Service Business-owned records:
 
-- businesses
-- business_customers
-- business_staff
-- service_categories
-- services
-- locations
-- appointments
-- business_policies
+- `Business`
+- `BusinessProfile`
+- `BusinessLocation`
+- `ServiceCategory`
+- `Service`
+- `BusinessPolicy`
+
+`organizationId` is an external Organization/Tenancy reference. No Organization, Person, User, Customer, Staff, Resource, Booking, Appointment, Payment, Finance, or Notification tables exist in the current schema.
+
+Booking-related records below are architectural future boundaries, not current tables.
 
 External references:
 
@@ -26,22 +28,17 @@ External references:
 - reservation_id
 - payment_id
 
-## 3. Aggregate Ownership
+## 3. Current Aggregate Ownership
 
 Each aggregate has one clear owner.
 
-Example:
+- `Business` is the root for its Phase 1-owned profile, locations, categories, services, and policies.
+- `ServiceCategory` belongs to one Business and may be referenced by Services in that Business.
+- `Service` belongs to one Business and requires a Business-owned ServiceCategory.
+- `BusinessPolicy` is Business-scoped and versioned.
+- `BusinessLocation` is Business-scoped and has an `active` field.
 
-```text
-Appointment
-  ├── service reference
-  ├── customer person reference
-  ├── staff reference
-  ├── reservation reference
-  └── payment reference
-```
-
-These references do not imply database-level ownership of external aggregates.
+Future Booking/Appointment references to Person, Staff, Reservation, or Payment do not imply current database ownership.
 
 ## 4. Money
 
@@ -68,9 +65,14 @@ Every business has an explicit timezone.
 
 Persist timestamps in a canonical representation, normally UTC, while preserving business timezone for scheduling semantics.
 
-## 6. Soft Delete
+## 6. Lifecycle and Soft Delete
 
-Use soft deletion only where business history requires it.
+- `Service.archivedAt` and `ServiceCategory.archivedAt` distinguish active (`null`) from archived (timestamp) resources.
+- Archived Service and ServiceCategory records remain retrievable by ID and cannot be updated.
+- Service archive and restore are idempotent. Service `deletedAt` remains independent and is not changed by archive/restore.
+- ServiceCategory has no `deletedAt` field or delete operation.
+- Business and Service retain nullable `deletedAt` fields in the current schema, but no delete API is implemented for this Phase 1 surface.
+- `BusinessLocation.active` is a separate active/inactive lifecycle field and must not be conflated with Service/ServiceCategory archival.
 
 Appointments and financial references must remain auditable.
 

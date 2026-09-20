@@ -1101,6 +1101,8 @@ Settlement مسئول موارد زیر است:
 
 # 34. Service Business
 
+پیاده‌سازی فعلی این مخزن به هسته Phase 1 شامل Business، Business Profile، Business Location، Service Category، Service و Business Policy محدود است. قابلیت‌های بعدی این سند مرزهای مالکیت و اهداف یکپارچه‌سازی آینده هستند، مگر آنکه صراحتاً در backend فعلی Phase 1 پیاده‌سازی شده باشند.
+
 `SmartCoreServiceBusiness` یک **Domain Application** است، نه Foundation پلتفرم.
 
 هدف آن مدل‌سازی کسب‌وکارهایی است که خدمات ارائه می‌کنند.

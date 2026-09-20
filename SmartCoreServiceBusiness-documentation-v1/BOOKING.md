@@ -1,5 +1,9 @@
 # Booking and Reservation
 
+## Status in this repository
+
+Booking, Appointment, Availability, Reservation, Staff, Resource, Payment, and Notification are not implemented production bounded contexts in the current repository. This document defines the intended integration contract for later phases. The current Phase 1 implementation provides Business, ServiceCategory, Service, BusinessLocation, and BusinessPolicy references only.
+
 ## 1. Ownership
 
 Service Business owns the **business booking intent**.

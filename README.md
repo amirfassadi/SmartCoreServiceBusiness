@@ -19,6 +19,19 @@ SmartCoreServiceBusiness provides the domain application for service-based busin
 - Home services
 - Automotive service centers
 
+## Current Implementation
+
+The current repository implements the Service Business Phase 1 backend:
+
+- Business and BusinessProfile
+- BusinessLocation
+- BusinessPolicy with versioned persistence
+- ServiceCategory and Service
+- Business and Organization-scoped repository isolation
+- REST API, DTO validation, stable error mapping, Prisma persistence, and tests
+
+Identity, Authorization, Customer, Staff, Resource, Availability, Booking/Reservation, Payment/Finance, Deposit, Notification, and SMS integration remain external or deferred boundaries. They are described architecturally but are not production bounded contexts in this repository.
+
 The first deployment may be a beauty salon, but the product boundary remains generic.
 
 ## Architectural Position
