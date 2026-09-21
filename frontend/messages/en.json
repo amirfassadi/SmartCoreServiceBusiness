@@ -1,0 +1,91 @@
+{
+  "admin": {
+    "product": "Platform",
+    "section": "Administration",
+    "title": "Service Business",
+    "navigation": "Admin navigation",
+    "selector": "Selected business",
+    "noBusiness": "No business selected",
+    "loading": "Loading business...",
+    "clear": "Clear",
+    "openMenu": "Open navigation",
+    "closeMenu": "Close navigation",
+    "dashboardHeading": "Admin shell ready",
+    "dashboardDescription": "This reusable workspace is ready for service-business modules.",
+    "notImplemented": "This module is not implemented yet.",
+    "errors": {
+      "notFound": "Business not found",
+      "accessDenied": "Business unavailable"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "business": "Business",
+      "locations": "Locations",
+      "categories": "Service Categories",
+      "services": "Services",
+      "policies": "Policies"
+    }
+  },
+  "locations": {
+    "eyebrow": "Business operations",
+    "title": "Locations",
+    "description": "Manage the places where this business provides services.",
+    "createTitle": "Create Location",
+    "editTitle": "Edit Location",
+    "loading": "Loading...",
+    "noAddress": "No address provided",
+    "fields": { "id": "ID", "name": "Name", "address": "Address", "timezone": "Timezone" },
+    "status": { "active": "Active", "inactive": "Inactive" },
+    "actions": { "create": "Create Location", "edit": "Edit", "deactivate": "Deactivate", "save": "Save", "cancel": "Cancel" },
+    "states": { "noBusiness": "No business selected", "noBusinessMessage": "Select a business before managing locations.", "loadingMessage": "Loading locations for the selected business.", "empty": "No locations yet", "emptyMessage": "Create the first location for this business." },
+    "confirm": { "title": "Confirm Deactivation", "message": "Deactivate {name}? This location will remain available as inactive." },
+    "validation": { "nameRequired": "Name is required.", "nameTooLong": "Name must be 200 characters or fewer.", "addressTooLong": "Address must be 2000 characters or fewer.", "timezoneRequired": "Timezone is required.", "timezoneTooLong": "Timezone must be 200 characters or fewer." },
+    "errors": { "businessNotFoundTitle": "Business not found", "businessNotFound": "The selected business could not be found.", "accessDeniedTitle": "Business unavailable", "accessDenied": "The selected business is not available.", "persistence": "The locations could not be loaded right now.", "genericTitle": "Unable to load locations", "generic": "Something went wrong. Please try again." }
+  },
+  "categories": {
+    "eyebrow": "Business configuration",
+    "title": "Service Categories",
+    "description": "Organize the services offered by this business.",
+    "createTitle": "Create Category",
+    "editTitle": "Edit Category",
+    "loading": "Loading...",
+    "fields": { "id": "ID", "name": "Name", "slug": "Slug", "parent": "Parent category", "noParent": "No parent", "archivedAt": "Archived at" },
+    "status": { "active": "Active", "archived": "Archived" },
+    "filters": { "label": "Category status", "active": "Active", "archived": "Archived", "all": "All" },
+    "actions": { "create": "Create Category", "edit": "Edit", "archive": "Archive", "restore": "Restore", "save": "Save", "cancel": "Cancel" },
+    "states": { "noBusiness": "No business selected", "noBusinessMessage": "Select a business before managing categories.", "loadingMessage": "Loading categories for the selected business.", "empty": "No categories yet", "emptyMessage": "Create the first service category for this business." },
+    "confirm": { "archiveTitle": "Confirm Archive", "archiveMessage": "Archive {name}? The category will become archived.", "restoreTitle": "Confirm Restore", "restoreMessage": "Restore {name}? The category will become active." },
+    "validation": { "nameRequired": "Name is required.", "nameTooLong": "Name must be 200 characters or fewer.", "slugRequired": "Slug is required.", "slugTooLong": "Slug must be 100 characters or fewer.", "slugInvalid": "Use lowercase letters, numbers, and hyphens." },
+    "errors": { "businessNotFoundTitle": "Business not found", "businessNotFound": "The selected business could not be found.", "accessDeniedTitle": "Business unavailable", "accessDenied": "The selected business is not available.", "persistence": "Categories could not be loaded right now.", "genericTitle": "Unable to load categories", "generic": "Something went wrong. Please try again.", "hasActiveServices": "This category cannot be archived while it has active services." }
+  },
+  "services": {
+    "eyebrow": "Business catalog",
+    "title": "Services",
+    "description": "Manage the services offered by this business.",
+    "createTitle": "Create Service",
+    "editTitle": "Edit Service",
+    "loading": "Loading...",
+    "fields": { "id": "ID", "name": "Name", "slug": "Slug", "category": "Category", "selectCategory": "Select a category", "noCategories": "No active categories available", "unknownCategory": "Unknown category", "duration": "Duration in minutes", "minutes": "{count} minutes", "archivedAt": "Archived at" },
+    "status": { "active": "Active", "archived": "Archived" },
+    "filters": { "label": "Service status", "active": "Active", "archived": "Archived", "all": "All" },
+    "actions": { "create": "Create Service", "edit": "Edit", "archive": "Archive", "restore": "Restore", "save": "Save", "cancel": "Cancel" },
+    "states": { "noBusiness": "No business selected", "noBusinessMessage": "Select a business before managing services.", "loadingMessage": "Loading services for the selected business.", "empty": "No services yet", "emptyMessage": "Create the first service for this business." },
+    "confirm": { "archiveTitle": "Confirm Archive", "archiveMessage": "Archive {name}? The service will become archived.", "restoreTitle": "Confirm Restore", "restoreMessage": "Restore {name}? The service will become active." },
+    "validation": { "categoryRequired": "Category is required.", "nameRequired": "Name is required.", "nameTooLong": "Name must be 200 characters or fewer.", "slugRequired": "Slug is required.", "slugTooLong": "Slug must be 100 characters or fewer.", "slugInvalid": "Use lowercase letters, numbers, and hyphens.", "durationInteger": "Duration must be a whole number.", "durationPositive": "Duration must be at least 1 minute." },
+    "errors": { "businessNotFoundTitle": "Business not found", "businessNotFound": "The selected business could not be found.", "accessDeniedTitle": "Business unavailable", "accessDenied": "The selected business is not available.", "persistence": "Services could not be loaded right now.", "genericTitle": "Unable to load services", "generic": "Something went wrong. Please try again.", "categoryArchived": "This service cannot be restored while its category is archived." }
+  },
+  "policies": {
+    "eyebrow": "Business configuration",
+    "title": "Policies",
+    "description": "Look up and manage versioned business policies.",
+    "createTitle": "Create Policy",
+    "loading": "Loading...",
+    "fields": { "policyKey": "Policy Key", "keyHelp": "Use lowercase dotted keys, for example service.confirmation.", "jsonValue": "Policy Value JSON", "jsonHelp": "Enter a JSON object. Its structure is owned by the backend." },
+    "current": { "title": "Current Policy", "version": "Current version: {version}" },
+    "history": { "title": "Version History", "version": "Version {version}" },
+    "actions": { "load": "Load", "reload": "Reload Latest", "save": "Save" },
+    "states": { "noBusiness": "No business selected", "noBusinessMessage": "Select a business before managing policies.", "loadingMessage": "Loading the selected policy." },
+    "validation": { "keyRequired": "Policy key is required.", "keyTooLong": "Policy key must be 100 characters or fewer.", "keyInvalid": "Use lowercase dotted keys.", "jsonRequired": "Policy JSON is required.", "jsonInvalid": "Enter valid JSON.", "jsonObjectRequired": "Policy value must be a JSON object." },
+    "errors": { "businessTitle": "Business not found", "business": "The selected business could not be found.", "accessTitle": "Business unavailable", "access": "The selected business is not available.", "notFoundTitle": "Policy not found", "notFound": "No policy exists for this key.", "persistence": "The policy could not be loaded right now.", "genericTitle": "Unable to load policy", "generic": "Something went wrong. Please try again.", "versionConflict": "This policy changed after it was loaded. Your edits are still present. Reload the latest version to continue." }
+  }
+}

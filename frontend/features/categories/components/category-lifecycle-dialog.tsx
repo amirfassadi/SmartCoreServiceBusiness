@@ -1,0 +1,10 @@
+"use client";
+
+import type { ServiceCategory } from "@/api/types";
+import { useTranslations } from "next-intl";
+
+export function CategoryLifecycleDialog({ category, action, isSubmitting, error, onConfirm, onCancel }: { category: ServiceCategory; action: "archive" | "restore"; isSubmitting: boolean; error?: { code?: string; message?: string } | null; onConfirm: () => void; onCancel: () => void }) {
+  const t = useTranslations("categories");
+  const isArchive = action === "archive";
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="presentation" onMouseDown={onCancel}><section role="dialog" aria-modal="true" aria-labelledby="category-lifecycle-title" className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onMouseDown={(event) => event.stopPropagation()}><h2 id="category-lifecycle-title" className="text-lg font-semibold text-slate-900">{isArchive ? t("confirm.archiveTitle") : t("confirm.restoreTitle")}</h2><p className="mt-2 text-sm text-slate-600">{isArchive ? t("confirm.archiveMessage", { name: category.name }) : t("confirm.restoreMessage", { name: category.name })}</p>{error && <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error.code === "CATEGORY_HAS_ACTIVE_SERVICES" ? t("errors.hasActiveServices") : error.message ?? t("errors.generic")}</p>}<div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onCancel} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">{t("actions.cancel")}</button><button type="button" onClick={onConfirm} disabled={isSubmitting} className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">{isSubmitting ? t("loading") : isArchive ? t("actions.archive") : t("actions.restore")}</button></div></section></div>;
+}
