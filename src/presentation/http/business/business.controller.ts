@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CreateBusinessUseCase } from '../../../application/business/create-business.use-case';
 import { GetBusinessUseCase } from '../../../application/business/get-business.use-case';
@@ -39,6 +40,7 @@ interface RequestWithValidatedContext extends Request {
 }
 
 @Controller('api/v1/businesses')
+@ApiTags('businesses')
 export class BusinessController {
   constructor(
     private readonly createBusinessUseCase: CreateBusinessUseCase,
@@ -68,6 +70,8 @@ export class BusinessController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a Business and its initial profile' })
+  @ApiCreatedResponse({ description: 'Business created.' })
   create(@Body() body: CreateBusinessDto, @Req() request: RequestWithValidatedContext) {
     const input: BusinessCreateInput = {
       slug: body.slug,
@@ -86,11 +90,15 @@ export class BusinessController {
   }
 
   @Get(':businessId')
+  @ApiOperation({ summary: 'Get a Business and profile' })
+  @ApiOkResponse({ description: 'Business returned.' })
   get(@Param('businessId', IdentifierPipe) businessId: string, @Req() request: RequestWithValidatedContext) {
     return this.getBusinessUseCase.execute(businessId, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapBusiness);
   }
 
   @Patch(':businessId/profile')
+  @ApiOperation({ summary: 'Update a Business profile' })
+  @ApiOkResponse({ description: 'Profile updated.' })
   updateProfile(@Param('businessId', IdentifierPipe) businessId: string, @Body() body: UpdateBusinessProfileDto, @Req() request: RequestWithValidatedContext) {
     return this.updateBusinessProfileUseCase.execute(businessId, body, this.contextAdapter.getValidatedContext(request.validatedContext, businessId)).then(mapBusiness);
   }

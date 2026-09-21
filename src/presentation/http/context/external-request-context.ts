@@ -4,6 +4,7 @@ import { ValidationError } from '../../../domain/shared/domain-error';
 export interface ValidatedExternalContext {
   organizationId: string;
   actorId?: string;
+  capabilities?: readonly string[];
 }
 
 export interface ExternalRequestContextAdapter {
@@ -19,6 +20,7 @@ export class ValidatedExternalRequestContextAdapter implements ExternalRequestCo
     return {
       organizationId: request.organizationId,
       actorId: request.actorId,
+      capabilities: request.capabilities,
       businessId,
     };
   }

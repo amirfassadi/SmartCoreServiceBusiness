@@ -1,6 +1,7 @@
 export interface OrganizationContext {
   organizationId: string;
   actorId?: string;
+  capabilities?: readonly string[];
 }
 
 export interface BusinessContext extends OrganizationContext {

@@ -101,6 +101,22 @@ describe('Phase 1 HTTP boundary', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
+  it('maps optional development capabilities without treating them as production authorization', () => {
+    const middleware = new LocalDevelopmentContextMiddleware();
+    const request = {
+      header: (name: string) => ({
+        'x-smartcore-test-organization-id': 'org-test-001',
+        'x-smartcore-test-actor-id': 'actor-test-001',
+        'x-smartcore-test-capabilities': 'business.read, service.manage',
+      }[name]),
+    } as never;
+    const next = jest.fn();
+
+    middleware.use(request, {} as never, next);
+
+    expect(request).toMatchObject({ validatedContext: { capabilities: ['business.read', 'service.manage'] } });
+  });
+
   it('rejects missing external context without a production fallback', () => {
     const adapter: ExternalRequestContextAdapter = { getValidatedContext: () => { throw new ValidationError('Validated organization context is required.', 'BUSINESS_ACCESS_DENIED'); } };
     expect(() => adapter.getValidatedContext(undefined, 'business-1')).toThrow('Validated organization context is required.');

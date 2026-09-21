@@ -1,4 +1,5 @@
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsEmail, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -29,6 +30,7 @@ export class BusinessProfileDto {
 }
 
 export class CreateBusinessDto {
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(100)
@@ -76,6 +78,7 @@ export class CreateBusinessDto {
 }
 
 export class UpdateBusinessProfileDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -99,6 +102,7 @@ export class UpdateBusinessProfileDto {
 }
 
 export class CreateLocationDto {
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(200)
@@ -116,6 +120,7 @@ export class CreateLocationDto {
 }
 
 export class UpdateLocationDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -135,6 +140,7 @@ export class UpdateLocationDto {
 }
 
 export class CreateServiceCategoryDto {
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(200)
@@ -152,6 +158,7 @@ export class CreateServiceCategoryDto {
 }
 
 export class CreateServiceDto {
+  @ApiProperty()
   @IsString()
   @Matches(identifierPattern)
   categoryId!: string;
@@ -173,6 +180,7 @@ export class CreateServiceDto {
 }
 
 export class UpdateServiceDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @Matches(identifierPattern)
@@ -198,6 +206,7 @@ export class UpdateServiceDto {
 }
 
 export class UpdateServiceCategoryDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -216,12 +225,14 @@ export class UpdateServiceCategoryDto {
 }
 
 export class LifecycleQueryDto {
+  @ApiPropertyOptional({ enum: ['active', 'archived', 'all'], default: 'active' })
   @IsOptional()
   @IsIn(['active', 'archived', 'all'])
   status: 'active' | 'archived' | 'all' = 'active';
 }
 
 export class CreatePolicyDto {
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(100)
@@ -233,6 +244,7 @@ export class CreatePolicyDto {
 }
 
 export class UpdatePolicyDto {
+  @ApiProperty()
   @IsObject()
   policyValueJson!: Record<string, unknown>;
 }

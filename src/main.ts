@@ -7,6 +7,10 @@ import { phase1ValidationPipe } from './presentation/http/validation.pipe';
 
 export async function createHttpApplication() {
   const app = await NestFactory.create(AppModule);
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean);
+  if (allowedOrigins?.length) {
+    app.enableCors({ origin: allowedOrigins });
+  }
   app.useGlobalPipes(phase1ValidationPipe);
   app.useGlobalFilters(new HttpErrorFilter());
   return app;
