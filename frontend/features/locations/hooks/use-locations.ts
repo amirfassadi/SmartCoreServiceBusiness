@@ -2,7 +2,7 @@
 
 import { createLocation, deactivateLocation, listLocations, updateLocation } from "@/api/locations";
 import type { ApiError } from "@/api/errors";
-import type { CreateLocationRequest, UpdateLocationRequest } from "@/api/types";
+import type { CreateLocationRequest, UpdateLocationRequest, BusinessLocation } from "@/api/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function getLocationsQueryKey(businessId: string) {
@@ -10,7 +10,7 @@ export function getLocationsQueryKey(businessId: string) {
 }
 
 export function useLocations(businessId: string | null, enabled = true) {
-  return useQuery({
+  return useQuery<BusinessLocation[], ApiError>({
     queryKey: businessId ? getLocationsQueryKey(businessId) : ["locations", null],
     queryFn: async () => {
       const result = await listLocations(businessId as string);

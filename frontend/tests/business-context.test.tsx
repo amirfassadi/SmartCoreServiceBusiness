@@ -95,6 +95,18 @@ describe("Business Context infrastructure", () => {
     expect(getBusinessQueryKey("business-2")).not.toEqual(getBusinessQueryKey("business-1"));
   });
 
+  it("updates business context after a selection changes in another tab", async () => {
+    getBusinessMock.mockResolvedValue({ ok: true, data: business, status: 200 });
+    renderContext();
+    window.localStorage.setItem(BUSINESS_SELECTION_STORAGE_KEY, "business-1");
+    window.dispatchEvent(new StorageEvent("storage", { key: BUSINESS_SELECTION_STORAGE_KEY, newValue: "business-1" }));
+    await waitFor(() => expect(screen.getByTestId("business-name").textContent).toBe("example-business"));
+    window.localStorage.removeItem(BUSINESS_SELECTION_STORAGE_KEY);
+    window.dispatchEvent(new StorageEvent("storage", { key: BUSINESS_SELECTION_STORAGE_KEY, newValue: null }));
+    await waitFor(() => expect(screen.getByTestId("business-id").textContent).toBe("none"));
+    expect(screen.getByTestId("business-name").textContent).toBe("none");
+  });
+
   it.each([
     ["BUSINESS_NOT_FOUND"],
     ["BUSINESS_ACCESS_DENIED"],

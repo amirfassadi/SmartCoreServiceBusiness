@@ -2,16 +2,20 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { locales } from "@/next-intl.config";
+import { QueryProvider } from "@/providers/query-provider";
 import "@/app/globals.css";
+
+export const dynamic = "force-dynamic";
+export const metadata = {title: "SmartCore | Business", description: "SmartCore business workspace"};
 
 export default async function LocaleLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const locale = params.locale;
+  const {locale} = await params;
 
   if (!locales.includes(locale as (typeof locales)[number])) {
     notFound();
@@ -20,8 +24,8 @@ export default async function LocaleLayout({
   const messages = await getMessages({ locale });
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      <div dir={locale === "fa" ? "rtl" : "ltr"}>{children}</div>
-    </NextIntlClientProvider>
+    <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"}><body><QueryProvider>
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Tehran">{children}</NextIntlClientProvider>
+    </QueryProvider></body></html>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { createPolicy, getPolicy, getPolicyVersions, updatePolicy } from "@/api/policies";
-import type { CreatePolicyRequest, UpdatePolicyRequest } from "@/api/types";
+import type { CreatePolicyRequest, UpdatePolicyRequest, BusinessPolicy, PolicyVersion } from "@/api/types";
+import type { ApiError } from "@/api/errors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function getPolicyQueryKey(businessId: string, policyKey: string) {
@@ -13,7 +14,7 @@ export function getPolicyVersionsQueryKey(businessId: string, policyKey: string)
 }
 
 export function useCurrentPolicy(businessId: string | null, policyKey: string) {
-  return useQuery({
+  return useQuery<BusinessPolicy, ApiError>({
     queryKey: businessId ? getPolicyQueryKey(businessId, policyKey) : ["business-policies", null, policyKey],
     queryFn: async () => {
       const result = await getPolicy(businessId as string, policyKey);
@@ -26,7 +27,7 @@ export function useCurrentPolicy(businessId: string | null, policyKey: string) {
 }
 
 export function usePolicyVersions(businessId: string | null, policyKey: string, enabled = true) {
-  return useQuery({
+  return useQuery<PolicyVersion[], ApiError>({
     queryKey: businessId ? getPolicyVersionsQueryKey(businessId, policyKey) : ["business-policy-versions", null, policyKey],
     queryFn: async () => {
       const result = await getPolicyVersions(businessId as string, policyKey);

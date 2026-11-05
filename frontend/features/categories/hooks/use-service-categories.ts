@@ -2,14 +2,15 @@
 
 import { archiveCategory, createCategory, listCategories, restoreCategory, updateCategory } from "@/api/categories";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { LifecycleStatus, CreateServiceCategoryRequest, UpdateServiceCategoryRequest } from "@/api/types";
+import type { LifecycleStatus, CreateServiceCategoryRequest, UpdateServiceCategoryRequest, ServiceCategory } from "@/api/types";
+import type { ApiError } from "@/api/errors";
 
 export function getServiceCategoriesQueryKey(businessId: string, status: LifecycleStatus) {
   return ["service-categories", businessId, status] as const;
 }
 
 export function useServiceCategories(businessId: string | null, status: LifecycleStatus, enabled = true) {
-  return useQuery({
+  return useQuery<ServiceCategory[], ApiError>({
     queryKey: businessId ? getServiceCategoriesQueryKey(businessId, status) : ["service-categories", null, status],
     queryFn: async () => {
       const result = await listCategories(businessId as string, status);

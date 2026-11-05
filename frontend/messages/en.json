@@ -10,8 +10,8 @@
     "clear": "Clear",
     "openMenu": "Open navigation",
     "closeMenu": "Close navigation",
-    "dashboardHeading": "Admin shell ready",
-    "dashboardDescription": "This reusable workspace is ready for service-business modules.",
+    "dashboardHeading": "Your business, in one place",
+    "dashboardDescription": "Choose a section from the navigation. Your data appears after a business is selected.",
     "notImplemented": "This module is not implemented yet.",
     "errors": {
       "notFound": "Business not found",

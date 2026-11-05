@@ -5,7 +5,7 @@ import type { ApiError } from "@/api/errors";
 import type { Business } from "@/api/types";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useCallback, useMemo, useSyncExternalStore } from "react";
 
 export const BUSINESS_SELECTION_STORAGE_KEY = "smartcore:selected-business-id";
 
@@ -23,6 +23,23 @@ type BusinessContextValue = {
 };
 
 const BusinessContext = createContext<BusinessContextValue | null>(null);
+const selectionEvent = "smartcore:business-selection";
+
+function subscribeSelection(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(selectionEvent, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(selectionEvent, onChange);
+  };
+}
+
+function readSelection() {
+  try { return normalizeBusinessId(window.localStorage.getItem(BUSINESS_SELECTION_STORAGE_KEY)); }
+  catch { return null; }
+}
+
+function serverSelection(): undefined { return undefined; }
 
 function normalizeBusinessId(businessId: string | null) {
   const normalized = businessId?.trim() ?? "";
@@ -30,14 +47,9 @@ function normalizeBusinessId(businessId: string | null) {
 }
 
 export function BusinessContextProvider({ children }: { children: React.ReactNode }) {
-  const [businessId, setBusinessIdState] = useState<string | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    const storedBusinessId = window.localStorage.getItem(BUSINESS_SELECTION_STORAGE_KEY);
-    setBusinessIdState(normalizeBusinessId(storedBusinessId));
-    setIsHydrated(true);
-  }, []);
+  const selected = useSyncExternalStore(subscribeSelection, readSelection, serverSelection);
+  const businessId = selected ?? null;
+  const isHydrated = selected !== undefined;
 
   const selectedBusinessQuery = useQuery<Business, ApiError>({
     queryKey: businessId ? getBusinessQueryKey(businessId) : ["business", null],
@@ -52,18 +64,16 @@ export function BusinessContextProvider({ children }: { children: React.ReactNod
     retry: false,
   });
 
-  const setBusinessId = (nextBusinessId: string | null) => {
+  const setBusinessId = useCallback((nextBusinessId: string | null) => {
     const normalizedBusinessId = normalizeBusinessId(nextBusinessId);
-    setBusinessIdState(normalizedBusinessId);
+    try {
+      if (normalizedBusinessId === null) window.localStorage.removeItem(BUSINESS_SELECTION_STORAGE_KEY);
+      else window.localStorage.setItem(BUSINESS_SELECTION_STORAGE_KEY, normalizedBusinessId);
+    } catch { return; }
+    window.dispatchEvent(new Event(selectionEvent));
+  }, []);
 
-    if (normalizedBusinessId === null) {
-      window.localStorage.removeItem(BUSINESS_SELECTION_STORAGE_KEY);
-    } else {
-      window.localStorage.setItem(BUSINESS_SELECTION_STORAGE_KEY, normalizedBusinessId);
-    }
-  };
-
-  const clearBusiness = () => setBusinessId(null);
+  const clearBusiness = useCallback(() => setBusinessId(null), [setBusinessId]);
 
   const value = useMemo<BusinessContextValue>(
     () => ({
@@ -74,7 +84,7 @@ export function BusinessContextProvider({ children }: { children: React.ReactNod
       setBusinessId,
       clearBusiness,
     }),
-    [businessId, clearBusiness, selectedBusinessQuery.data, selectedBusinessQuery.error, selectedBusinessQuery.isLoading],
+    [businessId, clearBusiness, setBusinessId, selectedBusinessQuery.data, selectedBusinessQuery.error, selectedBusinessQuery.isLoading],
   );
 
   return <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>;

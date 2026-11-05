@@ -1,7 +1,8 @@
 "use client";
 
 import { archiveService, createService, listServices, restoreService, updateService } from "@/api/services";
-import type { CreateServiceRequest, LifecycleStatus, UpdateServiceRequest } from "@/api/types";
+import type { CreateServiceRequest, LifecycleStatus, UpdateServiceRequest, Service } from "@/api/types";
+import type { ApiError } from "@/api/errors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function getServicesQueryKey(businessId: string, status: LifecycleStatus) {
@@ -9,7 +10,7 @@ export function getServicesQueryKey(businessId: string, status: LifecycleStatus)
 }
 
 export function useServices(businessId: string | null, status: LifecycleStatus, enabled = true) {
-  return useQuery({
+  return useQuery<Service[], ApiError>({
     queryKey: businessId ? getServicesQueryKey(businessId, status) : ["services", null, status],
     queryFn: async () => {
       const result = await listServices(businessId as string, status);
