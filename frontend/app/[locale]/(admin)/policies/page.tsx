@@ -1,7 +1,6 @@
 "use client";
 
 import type { ApiError } from "@/api/errors";
-import type { BusinessPolicy } from "@/api/types";
 import { PolicyHistory } from "@/features/policies/components/policy-history";
 import { useCreatePolicy, useCurrentPolicy, usePolicyVersions, useUpdatePolicy } from "@/features/policies/hooks/use-policies";
 import { policyEditorSchema, type PolicyEditorValues } from "@/features/policies/schemas";
@@ -17,17 +16,16 @@ export default function PoliciesPage() {
   const { businessId, isLoading: businessLoading, error: businessError } = useBusinessContext();
   const [lookupKey, setLookupKey] = useState("");
   const [policyKey, setPolicyKey] = useState("");
-  const [draft, setDraft] = useState<BusinessPolicy | null>(null);
   const currentQuery = useCurrentPolicy(businessId, policyKey);
   const historyQuery = usePolicyVersions(businessId, policyKey, Boolean(policyKey && !businessLoading && !businessError));
   const createMutation = useCreatePolicy(businessId ?? "", policyKey);
   const updateMutation = useUpdatePolicy(businessId ?? "", policyKey);
   const form = useForm<PolicyEditorValues>({ resolver: zodResolver(policyEditorSchema), defaultValues: { policyKey: "", policyValueText: "" } });
   const hasCurrentPolicy = Boolean(currentQuery.data);
+  const draft = currentQuery.data;
 
   useEffect(() => {
     if (currentQuery.data) {
-      setDraft(currentQuery.data);
       form.reset({ policyKey: currentQuery.data.policyKey, policyValueText: JSON.stringify(currentQuery.data.policyValueJson, null, 2) });
     }
   }, [currentQuery.data, form]);
@@ -35,7 +33,6 @@ export default function PoliciesPage() {
   const lookup = () => {
     const key = lookupKey.trim();
     if (policyEditorSchema.shape.policyKey.safeParse(key).success) {
-      setDraft(null);
       setPolicyKey(key);
       form.reset({ policyKey: key, policyValueText: form.getValues("policyValueText") });
     } else {

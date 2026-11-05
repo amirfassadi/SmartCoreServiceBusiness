@@ -74,7 +74,7 @@ describe("generic admin shell", () => {
     expect(screen.getByRole("link", { name: "Dashboard" }).getAttribute("href")).toBe("/en");
     expect(screen.getByRole("link", { name: "Business" }).getAttribute("href")).toBe("/en/business");
     expect(screen.getByRole("link", { name: "Locations" }).getAttribute("href")).toBe("/en/locations");
-    expect(screen.getByRole("link", { name: "Service Categories" }).getAttribute("href")).toBe("/en/categories");
+    expect(screen.getByRole("link", { name: "Service Categories" }).getAttribute("href")).toBe("/en/service-categories");
     expect(screen.getByRole("link", { name: "Services" }).getAttribute("href")).toBe("/en/services");
     expect(screen.getByRole("link", { name: "Policies" }).getAttribute("href")).toBe("/en/policies");
   });
